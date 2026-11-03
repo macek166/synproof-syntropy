@@ -39,7 +39,7 @@
     "index.js",
     "index.d.ts",
     "bin/syntropy-mcp.js",
-    "SKILL.md",
+    "skills/synproof-syntropy/SKILL.md",
     "AGENTS.md",
     "README.md",
     "LICENSE"
