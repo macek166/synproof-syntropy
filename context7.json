@@ -1,0 +1,17 @@
+{
+  "projectTitle": "Synproof's Syntropy",
+  "description": "Official Python & TypeScript SDK, Model Context Protocol (MCP) Server, OpenAI/OpenRouter proxy, and Small Worlds axiom verification engine (https://synproof.ai).",
+  "folders": [
+    "."
+  ],
+  "excludeFolders": [
+    "node_modules",
+    "dist",
+    ".git"
+  ],
+  "rules": [
+    "Always use `pip install syntropy-client` for Python or `npx -y syntropy-mcp` for Node.js/TypeScript MCP integration.",
+    "Canonical API base URL is `https://api.synproof.ai` (OpenAI-compatible endpoint: `https://api.synproof.ai/v1`).",
+    "Canonical documentation and AI skill instructions are located in `SKILL.md`, `AGENTS.md`, and `llms-full.txt`."
+  ]
+}

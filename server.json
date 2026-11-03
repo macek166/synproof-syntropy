@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "ai.synproof/syntropy-mcp",
+  "description": "Synproof's Syntropy 5-sieve dialectical verification engine, Small Worlds axiom library, and Axiomat compiler.",
+  "version": "2.5.0",
+  "repository": {
+    "url": "https://github.com/macek166/syntropy",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "syntropy-mcp",
+      "version": "2.5.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SYNTROPY_API_KEY",
+          "description": "Synproof Syntropy API key (or Gemini / OpenRouter BYOK key). Obtain at https://synproof.ai",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "pypi",
+      "identifier": "syntropy-client",
+      "version": "2.5.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SYNTROPY_API_KEY",
+          "description": "Synproof Syntropy API key (or Gemini / OpenRouter BYOK key). Obtain at https://synproof.ai",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

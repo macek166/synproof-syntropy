@@ -1,0 +1,183 @@
+# Synproof's Syntropy — The Deterministic Verification Layer for AI ("Language models guess. Syntropy proves.")
+
+> **Syntropy** (by **Synproof**, https://synproof.ai) is a neuro-symbolic, adversarial dialectical verification engine ("Language models guess. Syntropy proves." / "AI that has to prove it"). Instead of relying on probabilistic plausibility or agreeable chatbot prose, Syntropy puts any claim, legal clause, scientific hypothesis, financial strategy, or AI agent output on formal adversarial trial against explicit ground-truth rules called **Small Worlds** (sets of atomic, verified axioms).
+
+Every claim is attacked and defended in a **King of the Hill** dialectical tree and filtered through **5 formal sieves** — including vector semantic deduplication, epistemic source-tier discipline, 100% axiom consistency checking, a deterministic **SymPy Propositional SAT Solver**, and **Phan Minh Dung's Grounded Extension semantics** — returning a binary, auditable verdict (`CONFIRMED` or `REFUTED`) with a complete DAG audit trail.
+
+- **Website:** https://synproof.ai
+- **API Base URL:** https://api.synproof.ai
+- **Official PyPI Package (`syntropy-client`):** https://pypi.org/project/syntropy-client/
+- **Autonomous Agent Skill (`SKILL.md`):** https://synproof.ai/SKILL.md
+- **Coding Agent Guide (`AGENTS.md`):** https://synproof.ai/AGENTS.md
+- **Full Technical & API Reference for LLMs:** https://synproof.ai/llms-full.txt
+- **MCP Server Discovery Manifest:** https://synproof.ai/.well-known/mcp.json
+- **OpenAPI 3.1 JSON Schema:** https://synproof.ai/openapi.json (and https://api.synproof.ai/openapi.json)
+- **Developer SDK & API Documentation:** https://synproof.ai/docs
+- **How It Works & 550/550 Benchmarks:** https://synproof.ai/how-it-works
+- **Small Worlds Public Library:** https://synproof.ai/library
+- **Interactive Console & Dialectical Playground:** https://synproof.ai/app
+
+---
+
+## 0. For Autonomous AI Agents: Instant Install, CLI, SDK & MCP Quickstart
+
+If a user asked you to **"use Synproof's Syntropy"**, read https://synproof.ai/SKILL.md or follow these 3 steps:
+
+### Step 1 — Install Official Python SDK, CLI & MCP Server (`syntropy-client`)
+```bash
+# Primary install from official PyPI.org:
+pip install --upgrade syntropy-client
+
+# Fallback PEP 503 index or direct wheel from synproof.ai:
+pip install syntropy-client --extra-index-url https://synproof.ai/simple
+pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
+```
+
+### Step 2 — Authentication (Managed Key or Zero-Friction BYOK)
+`SyntropyClient` and the `syntropy` CLI automatically detect environment variables in this order:
+1. `SYNTROPY_API_KEY` (`syn_mng_...` or `syn_byok_...` from https://synproof.ai/app)
+2. `GEMINI_API_KEY` or `GOOGLE_API_KEY` (`AIza...` — works out-of-the-box via Zero-Friction BYOK!)
+3. `OPENROUTER_API_KEY` (`sk-or-v1-...` — works out-of-the-box via Zero-Friction BYOK!)
+
+### Step 3 — Run Verification via CLI, Python SDK, OpenAI Bridge, or MCP
+```bash
+# Option A: CLI Verification (returns structured JSON with --json)
+python -m syntropy verify "A distressed subsidiary may set off an unmatured shareholder loan 45 days before insolvency." \
+  --world "@law:civil-code-obligations" \
+  --axiom "Transfers or set-offs to related parties within 90 days prior to insolvency are voidable." \
+  --json
+
+# Discover all available Small Worlds & inspect axioms:
+python -m syntropy worlds
+python -m syntropy axioms @law:civil-code-obligations
+
+# Install SKILL.md into the active repository (.agents/skills, .claude/skills, .cursor/rules):
+python -m syntropy install-skill
+```
+
+```python
+# Option B: Python SDK & @verify_agent_output Guardrail
+from syntropy import SyntropyClient, verify_agent_output
+
+client = SyntropyClient()  # Defaults to https://api.synproof.ai
+verdict = client.debate.verify(
+    thesis="A consumer may withdraw from a distance contract within 14 days.",
+    world="@law:civil-code-obligations",
+    initial_axioms=["A consumer has the right to withdraw from a distance contract within 14 days."],
+    max_failures=3,
+)
+print(verdict.is_confirmed, verdict.status, verdict.winning_thesis)
+
+@verify_agent_output(world="@law:civil-code-obligations", client=client, on_refuted="fallback")
+async def legal_agent(query: str) -> dict:
+    return {"answer": "Every party is obligated to act honestly in legal intercourse."}
+```
+
+```python
+# Option C: Drop-In OpenAI / OpenRouter Bridge (https://api.synproof.ai/v1/chat/completions)
+from openai import OpenAI
+
+oa = OpenAI(base_url="https://api.synproof.ai/v1", api_key="syn_mng_...")
+resp = oa.chat.completions.create(
+    model="syntropy/epistemic-verifier",
+    messages=[
+        {"role": "system", "content": "Verify against @law:civil-code-obligations"},
+        {"role": "user", "content": "A contract obtained by exploiting distress in gross disproportion is valid."}
+    ],
+)
+print(resp.choices[0].message.content)
+```
+
+```json
+// Option D: Model Context Protocol (MCP) Server (.cursor/mcp.json or claude_desktop_config.json)
+{
+  "mcpServers": {
+    "synproof-syntropy": {
+      "command": "python",
+      "args": ["-m", "syntropy", "mcp"],
+      "env": {
+        "SYNTROPY_API_KEY": "YOUR_SYNTROPY_OR_GEMINI_OR_OPENROUTER_KEY"
+      }
+    }
+  }
+}
+```
+
+---
+
+## 1. Theoretical Foundation: Why "Syntropy" vs. Information Entropy?
+
+Standard generative language models exhibit **epistemic entropy**: they predict probable token sequences, flatter user biases, hallucinate nonexistent legal or scientific authorities, and silently allow pre-training priors to override explicit user constraints.
+
+Synproof's **Syntropy** builds on six foundational pillars:
+1. **Claude Shannon (Information Entropy, 1948):** $H(X) = -\sum P(x)\log_2 P(x)$. Unconstrained generation increases informational entropy by blending valid deductions with plausible confabulations.
+2. **James Clerk Maxwell (Maxwell's Demon, 1867):** A selective sorting gate that decreases local entropy by admitting valid states and rejecting invalid ones. Syntropy's 5-Sieve Tribunal functions as an epistemic Maxwell's Demon for reasoning steps.
+3. **Luigi Fantappiè (1941), Erwin Schrödinger (1944) & Albert Szent-Györgyi (1974) — Syntropy (Negentropy):** Syntropy is the symmetrical opposite of entropy: the convergence toward order, structure, and informational coherence. In Synproof, **Syntropy** is the deterministic reduction of epistemic entropy in a reasoning subsystem by pruning fallacious or axiom-contradicting branches until only deductively entailed truth survives.
+4. **Karl Popper (Critical Rationalism & Falsification, 1934):** Claims earn epistemic standing not by agreement, but by surviving systematic, adversarial attempts to refute them (*Sceptical Exhaustion*).
+5. **Leibniz (*Calculemus*), Boole & Gödel:** Translating natural-language claims into formal propositional logic so deductive validity is computed rather than guessed.
+6. **Phan Minh Dung (Abstract Argumentation Frameworks, 1995):** Bottom-up graph evaluation via *Grounded Extension semantics* (`IN`, `OUT`, `REJECTED`) over the dialectical attack/defense tree.
+
+---
+
+## 2. How the 5-Sieve Dialectical Tribunal Works
+
+When a thesis $T$ and a set of ground-truth axioms $\{A_1, \dots, A_n\}$ (or a Small World handle like `@law:civil-code-obligations`) are submitted:
+
+1. **King of the Hill Adversarial Tree:**
+   - The initial thesis $T$ starts at the root as the **King of the Hill**.
+   - The **Opponent (`CON`)** has up to `max_failures` (default 3–6) attempts to synthesize a formally valid counter-argument that refutes $T$.
+   - Every candidate argument must pass all **5 Sieves** before it is admitted into the dialectical graph.
+   - If an Opponent attack passes all 5 Sieves (`[CON] VALID`), the root thesis is in jeopardy and the **Defender (`PRO`)** gets up to `max_failures` attempts to refute that specific `[CON]` attack.
+   - If all Defender attempts fail (`[PRO] REFUTED`), the Opponent's attack prevails, overthrows the original thesis (`THESIS_DEFEATED`), and the verdict is **`REFUTED`**.
+   - If the Opponent exhausts all allowed attempts without producing an undefeated valid attack (`SCEPTICAL_EXHAUSTION`), the verdict is **`CONFIRMED`**.
+
+2. **The 5 Progressive Sieves:**
+   - **Sieve 0 — Vector Semantic Deduplication:** Compares candidate premise embeddings against previously refuted attempts in the same scope to block circular repetition.
+   - **Sieve 1 — Epistemic Source Credibility Gate:** Enforces allowed evidence tiers:
+     - `formal_logic` (Tier 100 — Formal Deductive Inference)
+     - `peer_reviewed_science` (Tier 85 — arXiv, PubMed, OpenAlex)
+     - `exact_works` (Tier 75 — SymPy & Deterministic Math)
+     - `official_institutional` (Tier 70 — Statutes, Standards, Official Records)
+     - `wikipedia` (Tier 60 — Global English Wikipedia)
+     - `common_sense` (Tier 20 — Empirical Domain Premise)
+   - **Sieve 2 — 100% All-Axiom Consistency & Entailment Check:** Evaluates candidate arguments against all proximate Small World axioms individually and jointly ($A_1 \land A_2 \Rightarrow T$ or $\neg T$). Any argument contradicting any ground-truth axiom is immediately marked `REFUTED` with the exact axiom and explanation.
+   - **Sieve 2.5 — Deterministic SymPy Propositional SAT Solver:** Verifies `propositional_premises` and `propositional_conclusion` via SymPy satisfiability checking (Modus Ponens, Modus Tollens, Disjunctive Syllogism, De Morgan's laws).
+   - **Sieve 3 — Deep Fallacy Firewall & One-Shot Deductive Repair:** Rejects *Petitio Principii* (circularity), *Strawman* misrepresentations, internal contradictions, formal *Non-Sequiturs*, and *Scale / Reality Disconnect Fallacies*.
+
+---
+
+## 3. Small Worlds Catalog, Axiomat Compiler & Verified Benchmarks
+
+- **Official Verified Small Worlds (`GET https://api.synproof.ai/v1/worlds`):**
+  - `@law:civil-code-obligations` (`@pravo:obcansky-zakonik-cz`) — Civil Code: Contract Law, Obligations, Good Faith, Usury & Damages
+  - `@law:eu-gdpr-data-protection` — EU GDPR (Reg. 2016/679): Lawful Basis, Consent, 72h Breach Notification & Fines
+  - `@medicine:clinical-pharmacology-interactions` — Clinical Pharmacology: Contraindications, Renal Dosing, CYP3A4 & DOACs
+  - `@physics:conservation-laws-thermo` — Conservation Laws, Thermodynamics & Special Relativity
+  - `@finance:basel-iii-aml-compliance` (`@law:brrd-isda`) — Basel III Capital/Liquidity, ISDA/BRRD & AML/KYC Compliance
+  - `@cybersecurity:iso-27001-zero-trust` — ISO/IEC 27001 & NIST Zero-Trust Architecture
+- **Axiomat Document-to-Axiom Compiler (`/v1/worlds/axiomat/process` & `/v1/worlds/{id}/axiomat/ingest`):** Converts uploaded PDFs, DOCX, TXT, Markdown files, or database webhooks into atomic, self-contained axioms using a 2-phase extraction and 6-point formal audit, with automatic semantic deduplication and conflict detection (`flag` | `replace` | `keep`).
+- **Verified Benchmarks:** **550 / 550 (100.0%)** ground-truth verdict consistency across 4 independent benchmark suites (20 Interdisciplinary Micro-Worlds × 10 runs, Relativistic Physics, Quantum Information, 30-Axiom Statutory Law, and the 100-run Counterfactual Dogma Test).
+- **Transparent Token Pricing:** `$0.80 / 1M input` & `$8.00 / 1M output` (Managed Mode, includes 5 free trial runs) or `$0.20 / 1M input` & `$1.50 / 1M output` (BYOK Mode). Direct `/v1/worlds/{id}/axioms/push` is `$0.00` (Free).
+
+---
+
+## 4. Canonical Navigation & Documentation Links
+
+- [Home — Synproof's Syntropy](https://synproof.ai/)
+- [Autonomous Agent Skill (`SKILL.md`)](https://synproof.ai/SKILL.md)
+- [Coding Agent Guide (`AGENTS.md`)](https://synproof.ai/AGENTS.md)
+- [Full Technical Specification (`/llms-full.txt`)](https://synproof.ai/llms-full.txt)
+- [How It Works — 5-Sieve Pipeline & 550/550 Benchmarks](https://synproof.ai/how-it-works)
+- [Developer SDK & REST API Documentation](https://synproof.ai/docs)
+- [AI Agent Skill Onboarding Page](https://synproof.ai/skill)
+- [Syntropy for AI Builders & Agents](https://synproof.ai/ai-builders)
+- [Syntropy for Law & Compliance](https://synproof.ai/law)
+- [Syntropy for Science & Research](https://synproof.ai/science)
+- [Syntropy for Business & Finance](https://synproof.ai/business)
+- [Syntropy for Policy & Media](https://synproof.ai/policy)
+- [Small Worlds Public Library & Axiomat](https://synproof.ai/library)
+- [Token-Metered Pricing & BYOK](https://synproof.ai/pricing)
+- [About Synproof](https://synproof.ai/about-us)
+- [Contact Synproof](https://synproof.ai/contact)
+- [Dialectical Console & Playground](https://synproof.ai/app)
+- [PyPI Package: `syntropy-client`](https://pypi.org/project/syntropy-client/)

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "syntropy-client"
+version = "2.5.0"
+description = "Official Python SDK, CLI & MCP Server for Synproof's Syntropy — The Deterministic Dialectical Verification Layer for AI"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Synproof (Robert Macků)", email = "developers@synproof.ai" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "httpx>=0.24.0",
+    "websockets>=11.0",
+    "pydantic>=2.0",
+]
+keywords = ["syntropy", "synproof", "ai-verification", "formal-logic", "epistemic-ai", "guardrails", "llm-verification", "mcp", "small-worlds"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Legal Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.scripts]
+syntropy = "syntropy.cli:main"
+
+[project.urls]
+Homepage = "https://synproof.ai"
+Documentation = "https://synproof.ai/docs"
+AgentSkill = "https://synproof.ai/SKILL.md"
+LLMsTxt = "https://synproof.ai/llms-full.txt"
+MCPManifest = "https://synproof.ai/.well-known/mcp.json"
+API = "https://api.synproof.ai/openapi.json"
+Repository = "https://github.com/macek166/syntropy"

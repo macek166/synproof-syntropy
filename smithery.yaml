@@ -1,0 +1,20 @@
+# Smithery.ai configuration file: https://smithery.ai/docs/config#smitheryyaml
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - syntropyApiKey
+    properties:
+      syntropyApiKey:
+        type: string
+        description: "Your Synproof Syntropy API key (or Gemini / OpenRouter BYOK key). Get one at https://synproof.ai"
+  commandFunction:
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['./bin/syntropy-mcp.js'],
+      env: {
+        SYNTROPY_API_KEY: config.syntropyApiKey
+      }
+    })

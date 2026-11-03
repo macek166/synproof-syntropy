@@ -1,0 +1,161 @@
+# Synproof's Syntropy — Full Technical Specification & API Reference (`llms-full.txt`)
+
+> Complete machine-readable documentation for AI Agents, LLM Web Fetchers, and Developers inspecting `https://synproof.ai` and `https://api.synproof.ai`.
+> For the Autonomous Agent Skill file, fetch: `https://synproof.ai/SKILL.md`
+
+---
+
+## 0. Autonomous AI Agent Quick-Install & Integration Blueprint
+
+When a user asks an AI agent to **"use Synproof's Syntropy"**:
+
+### 0.1. Install Python SDK, CLI & MCP Server (`syntropy-client` v2.5.0)
+```bash
+# Primary installation from official PyPI.org:
+pip install --upgrade syntropy-client
+
+# Fallback PEP 503 index or direct wheel URL from synproof.ai:
+pip install syntropy-client --extra-index-url https://synproof.ai/simple
+pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
+```
+
+### 0.2. Authentication (Managed Key or Zero-Friction BYOK)
+Pass credentials via environment variables or HTTP headers:
+- **Managed Mode:** `SYNTROPY_API_KEY="syn_mng_..."` (Header: `X-API-Key: syn_mng_...` or `Authorization: Bearer syn_mng_...`)
+- **Zero-Friction BYOK Mode:** Pass your existing `GEMINI_API_KEY` (`AIza...`) or `OPENROUTER_API_KEY` (`sk-or-v1-...`) in `X-API-Key`, `X-LLM-API-Key`, or `Authorization: Bearer`. `SyntropyClient()` and the `syntropy` CLI auto-discover `SYNTROPY_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, and `OPENROUTER_API_KEY`.
+
+### 0.3. Immediate CLI & MCP Usage
+```bash
+# Verify a claim from the terminal:
+syntropy verify "A distressed subsidiary may set off an unmatured shareholder loan 45 days before insolvency." \
+  --world "@law:civil-code-obligations" \
+  --axiom "Transfers or set-offs to related parties within 90 days prior to insolvency are voidable." \
+  --json
+
+# List official & public Small Worlds:
+syntropy worlds
+
+# Inspect all axioms of a Small World:
+syntropy axioms @law:civil-code-obligations
+
+# Launch stdio Model Context Protocol (MCP) server:
+syntropy mcp
+```
+
+### 0.4. Python SDK (`SyntropyClient` & `@verify_agent_output`)
+```python
+from syntropy import SyntropyClient, verify_agent_output, SyntropyGuardrailError
+
+client = SyntropyClient()  # Defaults to https://api.synproof.ai
+
+verdict = client.debate.verify(
+    thesis="A consumer may withdraw from a distance e-shop contract within 14 days.",
+    world="@law:civil-code-obligations",
+    initial_axioms=["A consumer has the right to withdraw from a distance contract within 14 days."],
+    max_failures=3,
+    model_name="gemini-2.5-flash",
+)
+print(verdict.is_confirmed, verdict.status, verdict.winning_thesis)
+
+@verify_agent_output(world="@law:civil-code-obligations", client=client, on_refuted="raise")
+async def legal_advisor(query: str) -> dict:
+    return {"answer": "Every party is obligated to act honestly in legal intercourse."}
+```
+
+---
+
+## 1. Executive Summary
+
+**Synproof's Syntropy** (`https://synproof.ai`) is the deterministic formal verification layer for AI ("AI that has to prove it"). It solves the three structural failures of generative language models in high-stakes reasoning:
+1. **Sycophancy ("It agrees with you"):** LLMs are trained via RLHF to be agreeable and will fold when challenged. Syntropy replaces agreeable chat with an adversarial **King of the Hill** dialectical clash between an Opponent (`CON`) and a Defender (`PRO`).
+2. **Prior Override ("It forgets your rules"):** When user-supplied statutes, contracts, or domain axioms conflict with pre-training weights, standard LLMs revert to their training priors. Syntropy enforces **Axiom Supremacy** (Sieve 2): your explicit ground-truth axioms (`Small Worlds`) override pre-trained beliefs 100% of the time (verified across 100/100 runs in the Counterfactual Dogma Test).
+3. **Opaque Prose ("It cannot show its work"):** Fluent paragraphs are not formal proofs. Syntropy enforces a strict logical schema (`analyzed_target`, `logical_premise`, `new_thesis`, `propositional_premises`, `propositional_conclusion`), verifies symbolic satisfiability via a **SymPy Propositional SAT Solver** (Sieve 2.5), filters fallacies (Sieve 3), and evaluates the resulting graph via **Phan Minh Dung's Grounded Extension semantics** (`IN`, `OUT`, `REJECTED`), returning a binary verdict (`CONFIRMED` or `REFUTED`) with a complete audit trail.
+
+---
+
+## 2. Intellectual & Mathematical Lineage (Why "Syntropy"?)
+
+- **Claude E. Shannon (1948) — *A Mathematical Theory of Communication*:** Defined information entropy $H(X) = -\sum P(x)\log_2 P(x)$. Unchecked generative reasoning accumulates informational entropy across multi-step chains.
+- **James Clerk Maxwell (1867) — *Maxwell's Demon*:** Demonstrated that an intelligent sorting gate observing individual states can reduce local entropy by admitting valid states and rejecting invalid ones. Syntropy's 5-Sieve Tribunal operates as an epistemic Maxwell's Demon over candidate reasoning steps.
+- **Luigi Fantappiè (1941) & Albert Szent-Györgyi (1974) — *Syntropy (Negentropy)*:** Defined *syntropy* as the symmetrical opposite of entropy — the tendency toward structure, order, and convergence. In Synproof, **Syntropy** is the formal process of reducing epistemic entropy in a reasoning subsystem by pruning invalid, circular, or axiom-contradicting branches until only deductively entailed truth remains.
+- **Karl R. Popper (1934) — *The Logic of Scientific Discovery*:** Epistemic robustness comes from surviving relentless falsification attempts (*Sceptical Exhaustion*).
+- **Gottfried Wilhelm Leibniz (*Calculemus*), George Boole & Kurt Gödel:** Formalizing natural-language arguments into symbolic propositional calculus.
+- **Phan Minh Dung (1995) — *On the Acceptability of Arguments and its Fundamental Role in Nonmonotonic Reasoning, Logic Programming and n-Person Games*:** Evaluating directed argumentation graphs bottom-up via Grounded Extension semantics.
+
+---
+
+## 3. Detailed Architecture of the 5-Sieve Dialectical Engine
+
+### 3.1 King of the Hill Dialectical Tree
+1. **Root Node (`Original Thesis`):** The claim under trial $T$ is placed at the root of the directed graph (`status = AXIOM_ROOT`, `role = PRO`).
+2. **Opponent Attack (`[CON]`):** The Opponent agent attempts to construct a valid deductive counter-argument attacking $T$. It is allowed up to `max_failures` (default `6`, configurable `2..10`) failed attempts.
+3. **Progressive 5-Sieve Filtering:** Each generated candidate argument is tested sequentially through Sieves 0, 1, 2, 2.5, and 3:
+   - **Sieve 0 (Semantic Deduplication):** Extracts the core premise (`extract_premise_only`) and checks cosine similarity against previously refuted premises in the same scope; candidates with high similarity are evaluated semantically to block repeated or paraphrased dead ends.
+   - **Sieve 1 (Source Credibility Gate):** Validates the source category and citation (`peer_reviewed_science` [arXiv, PubMed, OpenAlex], `exact_works` [SymPy / formal math], `formal_logic`, `official_institutional`, `wikipedia` [Global English Wikipedia `en.wikipedia.org`], `common_sense`).
+   - **Sieve 2 (100% All-Axiom Consistency & Entailment):** Selects proximate ground-truth axioms from the active Small World and evaluates both objective thesis entailment (`CONFIRMS_THESIS`, `REFUTES_THESIS`, `NEUTRAL`) and candidate relation (`CONTRADICTS`, `IDENTICAL`, `UNRELATED`), accounting for multi-axiom chains ($A_1 \land A_2 \Rightarrow T$ or $\neg T$). Any contradiction with any axiom immediately marks the node `REFUTED` with the exact axiom and formal explanation.
+   - **Sieve 2.5 (SymPy Propositional SAT Solver):** Parses `propositional_premises` (e.g., `["P1", "P1 >> Q"]`) and `propositional_conclusion` (e.g., `"Q"`) into SymPy boolean logic expressions, verifying premise satisfiability (`satisfiable(And(*premises))`) and deductive entailment (`not satisfiable(And(*premises, Not(conclusion)))`).
+   - **Sieve 3 (Deep Fallacy Firewall & One-Shot Repair):** Checks for internal contradiction (`violates_non_contradiction`), circularity (`is_circular` / *Petitio Principii*), distortion of target claim (`is_strawman`, respecting De Morgan's law $\neg(A \land B \land C) \iff \neg A \lor \neg B \lor \neg C$), formal non-sequitur (`is_non_sequitur`), and scale disconnect (`has_reality_disconnect`). If a candidate fails solely due to a formal non-sequitur gap, it receives one chance to repair the deductive link while preserving its premise and sources.
+4. **Defender Response (`[PRO]`):** If an Opponent attack passes all 5 Sieves (`[CON] VALID`), the Defender (`PRO`) is given up to `max_failures` attempts to refute that `[CON] VALID` node.
+   - Each failed defense attempt is recorded as a child leaf (`[PRO] REFUTED`) under the `[CON] VALID` node with its exact `rejection_reason`, and the Defender backtracks to try a new defense angle.
+   - If the Defender fails all `max_failures` attempts, `[CON] VALID` remains undefeated, overthrows the Root Thesis (`stopping_reason = THESIS_DEFEATED`), and the final verdict is **`REFUTED`**.
+   - If the Defender successfully refutes `[CON]` (and `[CON]` fails to counter), that attack branch is marked as a defended dead end and the Opponent backtracks to the Root Thesis to try a new line of attack until `max_failures` root attempts are exhausted (`stopping_reason = SCEPTICAL_EXHAUSTION`, final verdict = **`CONFIRMED`**).
+
+---
+
+## 4. Complete REST API Reference (`https://api.synproof.ai`)
+
+### 4.1 Authentication
+Pass any of:
+- `X-API-Key: syn_mng_...` (Managed key) or `syn_byok_...` (BYOK key),
+- `X-API-Key: AIza...` or `sk-or-v1-...` (Zero-Friction BYOK with Google Gemini or OpenRouter key),
+- `Authorization: Bearer <key_or_supabase_jwt_token>`.
+
+### 4.2 Endpoints
+
+#### `POST /v1/debate` — Initiate Asynchronous Dialectical Verification
+- **Request Body (`application/json`):**
+```json
+{
+  "thesis": "Under the ISDA 2002 Master Agreement and EU BRRD rules, when a bank enters a 48-hour resolution bail-in stay while continuing to perform all substantive payment and delivery obligations, a counterparty's early-termination and close-out netting rights are validly suspended for the duration of the stay.",
+  "initial_axioms": [
+    "Under the ISDA 2002 Master Agreement, a resolution filing constitutes an Event of Default unless overridden by mandatory statutory resolution stays.",
+    "Article 71 BRRD empowers the resolution authority to suspend termination and close-out netting rights for up to 48 hours provided substantive payment and delivery obligations continue to be performed.",
+    "During the 48-hour statutory stay, entry into bail-in resolution alone cannot be invoked as an actionable Event of Default."
+  ],
+  "world": "@finance:basel-iii-aml-compliance",
+  "max_failures": 6,
+  "enable_research": true,
+  "model_name": "gemini-2.5-flash",
+  "llm_provider": "gemini",
+  "allowed_source_types": [
+    "peer_reviewed_science",
+    "exact_works",
+    "formal_logic",
+    "official_institutional",
+    "wikipedia"
+  ]
+}
+```
+- **Response (`200 OK`):**
+```json
+{
+  "job_id": "job_9f8e7d6c5b4a",
+  "status": "queued"
+}
+```
+
+#### `GET /v1/debate/{job_id}` — Poll Verification Status & Verdict
+- **Response (`200 OK` when `status == "completed"`):**
+  Returns `original_thesis_status` (`"CONFIRMED"` | `"REFUTED"`), `winning_thesis`, `refuting_argument`, `stopping_reason`, `argumentation_tree`, `archive_of_paths`, `verdict_report`, and `telemetry`.
+
+#### `POST /v1/chat/completions` & `GET /v1/models` — OpenAI & OpenRouter Bridge
+- Drop-in OpenAI compatible endpoint. Supports `model="syntropy/epistemic-verifier"`, `"syntropy/fast"`, `"syntropy/claude-sonnet"`, `"syntropy/deepseek-r1"`.
+
+#### Small Worlds & Axiomat Endpoints
+- `GET /v1/worlds` (alias `/v1/worlds/public`) — List public and official verified Small Worlds in the Library.
+- `GET /v1/worlds/my` — List authenticated user's Small Worlds (`My Worlds`).
+- `GET /v1/worlds/{world_id_or_handle}/axioms` — Retrieve all atomic axioms for a Small World.
+- `POST /v1/worlds/axiomat/process` (alias `/v1/axiomat/extract`) — Compile a document (PDF/DOCX/TXT/MD or raw text) into atomic, audited axioms.
+- `POST /v1/worlds/{world_id_or_handle}/fork` — Create an isolated private fork of any Small World.
+- `POST /v1/worlds/{world_id_or_handle}/axiomat/ingest` — Expand an existing Small World with new documents, text, or `payload_json` database records via Axiomat (`on_conflict="flag" | "replace" | "keep"`).
+- `POST /v1/worlds/{world_id_or_handle}/axioms/push` — Direct batch push of pre-formulated axioms with deduplication and conflict detection.

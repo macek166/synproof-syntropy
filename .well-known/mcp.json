@@ -1,0 +1,107 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp-server-manifest.json",
+  "name": "synproof-syntropy",
+  "title": "Synproof's Syntropy — Deterministic 5-Sieve Verification & Small Worlds MCP Server",
+  "version": "2.5.0",
+  "description": "Official Model Context Protocol (MCP) server for Synproof's Syntropy ('Language models guess. Syntropy proves.'). Puts any claim, contract clause, scientific hypothesis, or AI agent output on formal adversarial trial against explicit ground-truth axioms (Small Worlds) using a 5-sieve dialectical tribunal, SymPy Propositional SAT Solver, and Dung's Grounded Extension semantics.",
+  "homepage": "https://synproof.ai",
+  "documentation": "https://synproof.ai/docs",
+  "skillUrl": "https://synproof.ai/SKILL.md",
+  "llmsTxt": "https://synproof.ai/llms.txt",
+  "llmsFullTxt": "https://synproof.ai/llms-full.txt",
+  "openApiUrl": "https://synproof.ai/openapi.json",
+  "package": {
+    "registry": "pypi",
+    "name": "syntropy-client",
+    "version": "2.5.0",
+    "url": "https://pypi.org/project/syntropy-client/",
+    "installCommand": "pip install syntropy-client",
+    "fallbackWheelUrl": "https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl"
+  },
+  "runtime": {
+    "transport": "stdio",
+    "command": "python",
+    "args": ["-m", "syntropy", "mcp"],
+    "alternativeCommand": "syntropy",
+    "alternativeArgs": ["mcp"],
+    "env": {
+      "SYNTROPY_API_KEY": {
+        "description": "Synproof Managed (syn_mng_...) or BYOK (syn_byok_...) API key, OR pass GEMINI_API_KEY (AIza...) / OPENROUTER_API_KEY (sk-or-v1-...) directly for Zero-Friction BYOK.",
+        "required": false
+      },
+      "GEMINI_API_KEY": {
+        "description": "Optional Google Gemini API key (AIza...) for Zero-Friction BYOK verification.",
+        "required": false
+      },
+      "OPENROUTER_API_KEY": {
+        "description": "Optional OpenRouter API key (sk-or-v1-...) for multi-model verification (Claude 3.5 Sonnet, DeepSeek R1, GPT-4o).",
+        "required": false
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "syntropy_verify",
+      "description": "Verify a natural-language thesis, legal clause, scientific hypothesis, or AI agent response against a Small World (@domain:handle) and/or explicit ground-truth axioms through the 5-sieve dialectical tribunal. Returns CONFIRMED or REFUTED with the winning thesis, refuting argument, and proof trail.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "thesis": { "type": "string", "description": "The claim, hypothesis, or AI output to formally verify." },
+          "world": { "type": "string", "description": "Optional Small World handle (e.g. '@law:civil-code-obligations', '@law:eu-gdpr-data-protection', '@medicine:clinical-pharmacology-interactions', '@physics:conservation-laws-thermo', '@finance:basel-iii-aml-compliance', '@cybersecurity:iso-27001-zero-trust')." },
+          "initial_axioms": { "type": "array", "items": { "type": "string" }, "description": "Optional list of explicit ground-truth axioms." },
+          "max_failures": { "type": "integer", "default": 3, "description": "Dialectical depth (1-10 failed refutation attempts required for Sceptical Exhaustion)." },
+          "model_name": { "type": "string", "default": "gemini-2.5-flash", "description": "Underlying verifier LLM (e.g. 'gemini-2.5-flash', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-r1')." }
+        },
+        "required": ["thesis"]
+      }
+    },
+    {
+      "name": "syntropy_list_worlds",
+      "description": "List available public and official Small Worlds (curated ground-truth axiom rulebases) across Law, Medicine, Physics, Finance, and Cybersecurity.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string", "description": "Optional domain filter (e.g. 'law', 'medicine', 'physics', 'finance', 'cybersecurity')." },
+          "search": { "type": "string", "description": "Optional keyword search query." }
+        }
+      }
+    },
+    {
+      "name": "syntropy_get_world_axioms",
+      "description": "Fetch all atomic ground-truth axioms for a given Small World handle or ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "world_id_or_handle": { "type": "string", "description": "Small World handle (e.g. '@law:civil-code-obligations') or UUID." }
+        },
+        "required": ["world_id_or_handle"]
+      }
+    },
+    {
+      "name": "syntropy_fork_world",
+      "description": "Create an isolated private fork of a public Small World so proprietary company rules can be appended.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source_world": { "type": "string", "description": "Source Small World handle or UUID to fork." },
+          "title": { "type": "string", "description": "Title for the new private Small World fork." }
+        },
+        "required": ["source_world", "title"]
+      }
+    },
+    {
+      "name": "syntropy_ingest_axioms",
+      "description": "Compile unstructured text or structured JSON/DB records into atomic, audited axioms inside a Small World via the Axiomat compiler.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "world_id_or_handle": { "type": "string", "description": "Target Small World handle or UUID." },
+          "raw_text": { "type": "string", "description": "Unstructured contract, statute, policy, or paper text to compile into axioms." },
+          "payload": { "type": "object", "description": "Structured JSON/database object to convert into formal axioms." },
+          "source_reference": { "type": "string", "description": "Citation or document source identifier." }
+        },
+        "required": ["world_id_or_handle"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "name": "syntropy-mcp",
+  "version": "2.5.0",
+  "description": "Official TypeScript/Node.js SDK & Model Context Protocol (MCP) Server for Synproof's Syntropy (https://synproof.ai) — the 5-sieve dialectical verification engine, Small Worlds axiom library, and Axiomat compiler.",
+  "keywords": [
+    "syntropy",
+    "synproof",
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "ai-verification",
+    "hallucination-guardrail",
+    "formal-verification",
+    "small-worlds",
+    "axiomat",
+    "llm-guardrails",
+    "claude",
+    "cursor",
+    "openrouter"
+  ],
+  "homepage": "https://synproof.ai",
+  "bugs": {
+    "url": "https://github.com/macek166/syntropy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/macek166/syntropy.git"
+  },
+  "license": "MIT",
+  "author": "Synproof (https://synproof.ai)",
+  "type": "commonjs",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "bin": {
+    "syntropy-mcp": "./bin/syntropy-mcp.js"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "bin/syntropy-mcp.js",
+    "SKILL.md",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node ./bin/syntropy-mcp.js",
+    "test": "node -e \"const { SyntropyClient } = require('./index.js'); const c = new SyntropyClient(); console.log('Syntropy SDK ready:', c.baseUrl);\""
+  }
+}
