@@ -1,5 +1,5 @@
 ---
-name: synproof-syntropy
+name: syntropy
 description: >
   Official interactive implementation and verification skill for Synproof's Syntropy
   (https://synproof.ai) — the deterministic 5-sieve dialectical verification engine
