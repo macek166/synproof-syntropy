@@ -33,7 +33,7 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "bin": {
-    "syntropy-mcp": "./bin/syntropy-mcp.js"
+    "syntropy-mcp": "bin/syntropy-mcp.js"
   },
   "files": [
     "index.js",
