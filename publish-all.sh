@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "============================================================"
-echo " Synproof's Syntropy — Public Repo, npm & Registry Publisher"
+echo " Synproof's Syntropy — Public Repo, npm & MCP Registry Setup"
 echo "============================================================"
 
 # 1. GitHub authentication & public repository creation
@@ -15,6 +15,13 @@ fi
 
 GH_USER="$(gh api user -q .login)"
 echo "Přihlášen jako GitHub uživatel: ${GH_USER}"
+
+# Sjednocení GitHub username v souborech pokud se liší od macek166
+if [ "${GH_USER}" != "macek166" ]; then
+  sed -i "s/macek166/${GH_USER}/g" package.json server.json glama.json README.md
+  git add package.json server.json glama.json README.md
+  git commit -m "chore: align GitHub namespace with ${GH_USER}" || true
+fi
 
 if ! git remote get-url origin >/dev/null 2>&1; then
   echo "Vytvářím veřejný repozitář https://github.com/${GH_USER}/syntropy ..."
@@ -57,10 +64,19 @@ echo "Publikuji balíček 'syntropy-mcp' na npmjs.com..."
 npm publish --access public
 echo "✅ Balíček 'syntropy-mcp' je publikován na: https://www.npmjs.com/package/syntropy-mcp"
 
+# 3. Official Model Context Protocol Registry (registry.modelcontextprotocol.io)
+echo ""
+echo "[3/3] Publikace do oficiálního MCP Registru (registry.modelcontextprotocol.io)..."
+~/.local/bin/mcp-publisher validate
+~/.local/bin/mcp-publisher login github
+~/.local/bin/mcp-publisher publish
+echo "✅ MCP Server je publikován v oficiálním MCP Registru!"
+
 echo ""
 echo "============================================================"
-echo " HOTOVO! Nyní může kdokoliv spustit:"
-echo "   npx -y syntropy-mcp"
-echo "   npx skills add ${GH_USER}/syntropy"
-echo "   pip install syntropy-client"
+echo " HOTOVO! Všechny hlavní registry jsou publikované:"
+echo "   • GitHub: https://github.com/${GH_USER}/syntropy"
+echo "   • npm:    https://www.npmjs.com/package/syntropy-mcp"
+echo "   • PyPI:   https://pypi.org/project/syntropy-client/"
+echo "   • MCP:    https://registry.modelcontextprotocol.io"
 echo "============================================================"

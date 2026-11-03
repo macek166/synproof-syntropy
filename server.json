@@ -1,7 +1,7 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "name": "ai.synproof/syntropy-mcp",
-  "description": "Synproof's Syntropy 5-sieve dialectical verification engine, Small Worlds axiom library, and Axiomat compiler.",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.macek166/syntropy-mcp",
+  "description": "Synproof's Syntropy 5-sieve dialectical verification engine and Small Worlds axiom library.",
   "version": "2.5.0",
   "repository": {
     "url": "https://github.com/macek166/syntropy",

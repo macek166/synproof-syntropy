@@ -1,5 +1,6 @@
 {
   "name": "syntropy-mcp",
+  "mcpName": "io.github.macek166/syntropy-mcp",
   "version": "2.5.0",
   "description": "Official TypeScript/Node.js SDK & Model Context Protocol (MCP) Server for Synproof's Syntropy (https://synproof.ai) — the 5-sieve dialectical verification engine, Small Worlds axiom library, and Axiomat compiler.",
   "keywords": [
