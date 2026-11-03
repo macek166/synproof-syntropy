@@ -4,7 +4,7 @@
   "description": "Synproof's Syntropy 5-sieve dialectical verification engine and Small Worlds axiom library.",
   "version": "2.5.0",
   "repository": {
-    "url": "https://github.com/macek166/syntropy",
+    "url": "https://github.com/macek166/synproof-syntropy",
     "source": "github"
   },
   "packages": [

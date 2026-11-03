@@ -34,7 +34,7 @@ Give your coding agent full autonomous knowledge of Synproof's Syntropy in one c
 
 ```bash
 # Via Vercel Skills CLI (skills.sh)
-npx skills add macek166/syntropy
+npx skills add macek166/synproof-syntropy
 
 # Or directly via curl into your workspace
 curl -sL https://synproof.ai/SKILL.md -o SKILL.md

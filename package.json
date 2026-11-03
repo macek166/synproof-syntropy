@@ -21,11 +21,11 @@
   ],
   "homepage": "https://synproof.ai",
   "bugs": {
-    "url": "https://github.com/macek166/syntropy/issues"
+    "url": "https://github.com/macek166/synproof-syntropy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/macek166/syntropy.git"
+    "url": "git+https://github.com/macek166/synproof-syntropy.git"
   },
   "license": "MIT",
   "author": "Synproof (https://synproof.ai)",
