@@ -5,23 +5,25 @@
  * Production Control Plane API: https://api.synproof.ai
  */
 
+const INJECTION_RE =
+  /(ignore\s+(all\s+)?(previous|prior|above)\s+instructions|system\s*prompt\s*:|<\s*\/?\s*(system|instruction|tool_call|function_call)\s*>)/gi;
+
+function sanitizeUntrustedText(raw, maxLength = 8000) {
+  const str = String(raw || "")
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "")
+    .replace(INJECTION_RE, "[REDACTED_DIRECTIVE]");
+  return str.trim().slice(0, maxLength);
+}
+
 class SyntropyClient {
   /**
    * @param {Object} [options]
-   * @param {string} [options.apiKey] - SYNTROPY_API_KEY (or syn_mng_... / syn_byok_...)
-   * @param {string} [options.llmApiKey] - OPENROUTER_API_KEY or GEMINI_API_KEY for zero-friction BYOK
+   * @param {string} [options.apiKey] - SYNTROPY_API_KEY
    * @param {string} [options.baseUrl] - Defaults to https://api.synproof.ai
    * @param {string} [options.modelName] - Defaults to gemini-2.5-flash
    */
   constructor(options = {}) {
     this.apiKey = options.apiKey || process.env.SYNTROPY_API_KEY || "";
-    this.llmApiKey =
-      options.llmApiKey ||
-      process.env.SYNTROPY_LLM_API_KEY ||
-      process.env.OPENROUTER_API_KEY ||
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      "";
     this.baseUrl = (
       options.baseUrl ||
       process.env.SYNTROPY_BASE_URL ||
@@ -42,31 +44,6 @@ class SyntropyClient {
           "GET",
           `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/axioms`
         ),
-      fork: (worldIdOrHandle, { title, description, isPublic = false } = {}) =>
-        this._request(
-          "POST",
-          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/fork`,
-          {
-            title,
-            description,
-            is_public: isPublic,
-          }
-        ),
-      ingest: (
-        worldIdOrHandle,
-        { text, payload, sourceReference, onConflict = "flag" } = {}
-      ) => {
-        const form = new URLSearchParams();
-        form.set("on_conflict", onConflict);
-        if (sourceReference) form.set("source_reference", sourceReference);
-        if (text) form.set("text", text);
-        if (payload) form.set("payload_json", JSON.stringify(payload));
-        return this._requestForm(
-          "POST",
-          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/axiomat/ingest`,
-          form
-        );
-      },
     };
   }
 
@@ -75,14 +52,10 @@ class SyntropyClient {
       "User-Agent": "Syntropy-Node-SDK/2.5.0 (+https://synproof.ai)",
       ...extra,
     };
-    const key = this.apiKey || this.llmApiKey;
-    if (key) {
-      headers["X-API-Key"] = key;
-      headers["X-Syntropy-API-Key"] = key;
-      headers["Authorization"] = `Bearer ${key}`;
-    }
-    if (this.llmApiKey) {
-      headers["X-LLM-API-Key"] = this.llmApiKey;
+    if (this.apiKey) {
+      headers["X-API-Key"] = this.apiKey;
+      headers["X-Syntropy-API-Key"] = this.apiKey;
+      headers["Authorization"] = `Bearer ${this.apiKey}`;
     }
     return headers;
   }
@@ -102,31 +75,8 @@ class SyntropyClient {
     return res.json();
   }
 
-  async _requestForm(method, path, formParams) {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      method,
-      headers: this._headers({
-        "Content-Type": "application/x-www-form-urlencoded",
-      }),
-      body: formParams.toString(),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Syntropy API error (${res.status}): ${text}`);
-    }
-    return res.json();
-  }
-
   /**
    * Run a formal 5-sieve dialectical verification debate.
-   * @param {Object} params
-   * @param {string} params.thesis
-   * @param {string} [params.world]
-   * @param {string[]} [params.initialAxioms]
-   * @param {number} [params.maxFailures=3]
-   * @param {string} [params.modelName]
-   * @param {boolean} [params.enableResearch=true]
-   * @param {boolean} [params.wait=true]
    */
   async debate({
     thesis,
@@ -146,10 +96,13 @@ class SyntropyClient {
         ? "openrouter"
         : "gemini";
 
+    const safeThesis = sanitizeUntrustedText(thesis);
+    const safeAxioms = (initialAxioms || []).map((a) => sanitizeUntrustedText(a));
+
     const startRes = await this._request("POST", "/v1/debate", {
-      thesis,
+      thesis: safeThesis,
       world,
-      initial_axioms: initialAxioms,
+      initial_axioms: safeAxioms,
       max_failures: maxFailures,
       enable_research: enableResearch,
       model_name: effectiveModel,
@@ -166,7 +119,7 @@ class SyntropyClient {
         const r = job.result || job;
         return {
           jobId,
-          thesis,
+          thesis: safeThesis,
           status: r.original_thesis_status || "UNKNOWN",
           winningThesis: r.winning_thesis || null,
           refutingArgument: r.refuting_argument || null,
@@ -186,4 +139,4 @@ class SyntropyClient {
   }
 }
 
-module.exports = { SyntropyClient };
+module.exports = { SyntropyClient, sanitizeUntrustedText };

@@ -1,7 +1,7 @@
 import sys
 import json
 from typing import Any, Dict, List, Optional
-from .client import SyntropyClient, DebateVerdict
+from .client import SyntropyClient, DebateVerdict, sanitize_untrusted_text
 from .skill_template import SKILL_MD_CONTENT
 
 
@@ -9,17 +9,17 @@ MCP_TOOLS: List[Dict[str, Any]] = [
     {
         "name": "syntropy_verify",
         "description": (
-            "Put a falsifiable claim (thesis), contract clause, scientific hypothesis, or AI output "
+            "Put a declarative claim (thesis), contract clause, scientific hypothesis, or AI output "
             "on formal adversarial trial against explicit ground-truth axioms and/or a Small World "
-            "(@domain:tag) using Synproof's 5-sieve Syntropy dialectical engine. Returns a deterministic "
-            "CONFIRMED or REFUTED verdict, winning thesis, refuting argument, and triggered axioms."
+            "(@domain:tag) using Synproof's 5-sieve Syntropy dialectical engine. All inputs are sanitized "
+            "as inert declarative data. Returns a deterministic CONFIRMED or REFUTED verdict."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "thesis": {
                     "type": "string",
-                    "description": "The specific, declarative claim to put on trial.",
+                    "description": "The specific, declarative claim to put on trial (treated strictly as inert data).",
                 },
                 "world": {
                     "type": "string",
@@ -31,7 +31,7 @@ MCP_TOOLS: List[Dict[str, Any]] = [
                 "initial_axioms": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Optional list of explicit ground-truth axioms that strictly override model priors.",
+                    "description": "Optional list of sanitized ground-truth axioms that strictly override model priors.",
                 },
                 "max_failures": {
                     "type": "integer",
@@ -84,62 +84,9 @@ MCP_TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
-        "name": "syntropy_fork_world",
-        "description": "Create an isolated private fork of a public Small World so custom rules can be ingested without altering public axioms.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "world_id_or_handle": {
-                    "type": "string",
-                    "description": "Source Small World handle or ID to fork.",
-                },
-                "title": {
-                    "type": "string",
-                    "description": "Title for the new private fork.",
-                },
-            },
-            "required": ["world_id_or_handle"],
-        },
-    },
-    {
-        "name": "syntropy_ingest_axioms",
-        "description": "Extract and synchronize atomic axioms from raw text or a JSON record into a Small World via Axiomat with deduplication and conflict resolution.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "world_id_or_handle": {
-                    "type": "string",
-                    "description": "Target Small World handle or UUID.",
-                },
-                "text": {
-                    "type": "string",
-                    "description": "Raw regulatory, contractual, or policy text to compile into atomic axioms.",
-                },
-                "payload": {
-                    "type": "object",
-                    "description": "Optional structured JSON/database record to compile into axioms.",
-                },
-                "source_reference": {
-                    "type": "string",
-                    "description": "Citation or source identifier for the ingested axioms.",
-                },
-                "on_conflict": {
-                    "type": "string",
-                    "enum": ["flag", "replace", "keep"],
-                    "default": "flag",
-                    "description": "Conflict resolution policy when new axioms contradict existing ones.",
-                },
-            },
-            "required": ["world_id_or_handle"],
-        },
-    },
-    {
         "name": "syntropy_get_onboarding_guide",
         "description": (
-            "Return the complete interactive Synproof Syntropy Customer Implementation & Onboarding Skill (SKILL.md). "
-            "Call this tool whenever the user asks to integrate, set up, or connect Syntropy into their project so you "
-            "know which questions to ask (ground-truth sources, max_failures iterations, on_refuted behavior, API keys) "
-            "and which SDK/Proxy code templates to apply."
+            "Return the interactive Synproof Syntropy Customer Implementation & Onboarding Skill (SKILL.md)."
         ),
         "inputSchema": {
             "type": "object",
@@ -226,10 +173,12 @@ def handle_mcp_request(req: Dict[str, Any], client: Optional[SyntropyClient] = N
                     },
                 }
             if tool_name == "syntropy_verify":
+                safe_thesis = sanitize_untrusted_text(args["thesis"])
+                safe_axioms = [sanitize_untrusted_text(a) for a in (args.get("initial_axioms") or [])]
                 verdict = syn_client.debate.verify(
-                    thesis=args["thesis"],
+                    thesis=safe_thesis,
                     world=args.get("world"),
-                    initial_axioms=args.get("initial_axioms"),
+                    initial_axioms=safe_axioms,
                     max_failures=int(args.get("max_failures", 3)),
                     model_name=args.get("model_name", "gemini-2.5-flash"),
                     enable_research=bool(args.get("enable_research", True)),
@@ -254,19 +203,6 @@ def handle_mcp_request(req: Dict[str, Any], client: Optional[SyntropyClient] = N
                 )
             elif tool_name == "syntropy_get_world_axioms":
                 out = syn_client.worlds.get_axioms(args["world_id_or_handle"])
-            elif tool_name == "syntropy_fork_world":
-                out = syn_client.worlds.fork(
-                    args["world_id_or_handle"],
-                    title=args.get("title"),
-                )
-            elif tool_name == "syntropy_ingest_axioms":
-                out = syn_client.worlds.ingest(
-                    args["world_id_or_handle"],
-                    text=args.get("text"),
-                    payload=args.get("payload"),
-                    source_reference=args.get("source_reference"),
-                    on_conflict=args.get("on_conflict", "flag"),
-                )
             else:
                 return {
                     "jsonrpc": "2.0",

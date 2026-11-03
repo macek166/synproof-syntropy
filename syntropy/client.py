@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import json
 import asyncio
@@ -7,6 +8,24 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import httpx
 import websockets
 from .models import DebateEvent, SourceType, SourceTier
+
+_INJECTION_PATTERNS = re.compile(
+    r"(ignore\s+(all\s+)?(previous|prior|above)\s+instructions|"
+    r"system\s*prompt\s*:|"
+    r"<\s*/?\s*(system|instruction|tool_call|function_call)\s*>)",
+    re.IGNORECASE,
+)
+
+
+def sanitize_untrusted_text(raw: Any, max_length: int = 8000) -> str:
+    """
+    Sanitizes untrusted external text against indirect prompt injection and control characters
+    before sending declarative propositions to the Syntropy verification engine.
+    """
+    text = str(raw or "")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    text = _INJECTION_PATTERNS.sub("[REDACTED_DIRECTIVE]", text)
+    return text.strip()[:max_length]
 
 
 class TelemetryDict(dict):
@@ -146,31 +165,21 @@ class WorldsClient:
         world_id_or_handle: str,
         text: Optional[str] = None,
         payload: Optional[Dict[str, Any]] = None,
-        file_path: Optional[str] = None,
         source_reference: Optional[str] = None,
         on_conflict: str = "flag",
     ) -> Dict[str, Any]:
         """
-        Extracts atomic axioms via Axiomat from raw text, a JSON/DB webhook payload, or a file,
+        Extracts atomic axioms via Axiomat from sanitized declarative text or a JSON dictionary,
         and synchronizes them into the target Small World with semantic deduplication.
         """
         data: Dict[str, Any] = {"on_conflict": on_conflict}
         if source_reference:
-            data["source_reference"] = source_reference
+            data["source_reference"] = sanitize_untrusted_text(source_reference, max_length=512)
         if text:
-            data["text"] = text
+            data["text"] = sanitize_untrusted_text(text, max_length=16000)
         if payload is not None:
-            data["payload_json"] = json.dumps(payload, ensure_ascii=False)
+            data["payload_json"] = sanitize_untrusted_text(json.dumps(payload, ensure_ascii=False), max_length=16000)
 
-        if file_path:
-            with open(file_path, "rb") as f:
-                files = {"file": (os.path.basename(file_path), f)}
-                return self._parent._request(
-                    "POST",
-                    f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
-                    data=data,
-                    files=files,
-                )
         return self._parent._request(
             "POST",
             f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
@@ -182,28 +191,17 @@ class WorldsClient:
         world_id_or_handle: str,
         text: Optional[str] = None,
         payload: Optional[Dict[str, Any]] = None,
-        file_path: Optional[str] = None,
         source_reference: Optional[str] = None,
         on_conflict: str = "flag",
     ) -> Dict[str, Any]:
         data: Dict[str, Any] = {"on_conflict": on_conflict}
         if source_reference:
-            data["source_reference"] = source_reference
+            data["source_reference"] = sanitize_untrusted_text(source_reference, max_length=512)
         if text:
-            data["text"] = text
+            data["text"] = sanitize_untrusted_text(text, max_length=16000)
         if payload is not None:
-            data["payload_json"] = json.dumps(payload, ensure_ascii=False)
+            data["payload_json"] = sanitize_untrusted_text(json.dumps(payload, ensure_ascii=False), max_length=16000)
 
-        if file_path:
-            with open(file_path, "rb") as f:
-                content = f.read()
-            files = {"file": (os.path.basename(file_path), content)}
-            return await self._parent._arequest(
-                "POST",
-                f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
-                data=data,
-                files=files,
-            )
         return await self._parent._arequest(
             "POST",
             f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
@@ -290,15 +288,7 @@ class SyntropyClient:
         self.api_key = api_key or os.environ.get("SYNTROPY_API_KEY", "")
         self.base_url = (base_url or os.environ.get("SYNTROPY_BASE_URL") or "https://api.synproof.ai").rstrip("/")
         self.ws_url = self.base_url.replace("http://", "ws://").replace("https://", "wss://")
-        self.llm_api_key = (
-            llm_api_key
-            or byok_key
-            or gemini_api_key
-            or os.environ.get("SYNTROPY_LLM_API_KEY")
-            or os.environ.get("OPENROUTER_API_KEY")
-            or os.environ.get("GEMINI_API_KEY")
-            or os.environ.get("GOOGLE_API_KEY")
-        )
+        self.llm_api_key = llm_api_key or byok_key or gemini_api_key or ""
         self.gemini_api_key = gemini_api_key or self.llm_api_key or ""
         self.typesafe_api_key = typesafe_api_key
         self.use_academic_search = use_academic_search
@@ -389,9 +379,11 @@ class SyntropyClient:
         """
         effective_model = model_name or self.model_name
         provider = self._infer_provider(effective_model, llm_provider or self.default_provider)
+        safe_thesis = sanitize_untrusted_text(thesis)
+        safe_axioms = [sanitize_untrusted_text(a) for a in (initial_axioms or [])]
         payload: Dict[str, Any] = {
-            "thesis": thesis,
-            "initial_axioms": initial_axioms or [],
+            "thesis": safe_thesis,
+            "initial_axioms": safe_axioms,
             "max_failures": max_failures,
             "enable_research": enable_research,
             "model_name": effective_model,
@@ -436,9 +428,11 @@ class SyntropyClient:
     ) -> Union[DebateVerdict, Dict[str, Any]]:
         effective_model = model_name or self.model_name
         provider = self._infer_provider(effective_model, llm_provider or self.default_provider)
+        safe_thesis = sanitize_untrusted_text(thesis)
+        safe_axioms = [sanitize_untrusted_text(a) for a in (initial_axioms or [])]
         payload: Dict[str, Any] = {
-            "thesis": thesis,
-            "initial_axioms": initial_axioms or [],
+            "thesis": safe_thesis,
+            "initial_axioms": safe_axioms,
             "max_failures": max_failures,
             "enable_research": enable_research,
             "model_name": effective_model,

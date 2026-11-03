@@ -30,7 +30,6 @@ pip install --upgrade syntropy-client
 
 # Fallback PEP 503 index or direct wheel from synproof.ai:
 pip install syntropy-client --extra-index-url https://synproof.ai/simple
-pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
 ```
 
 ### Step 2 — Authentication (Managed Key or Zero-Friction BYOK)
@@ -52,7 +51,6 @@ python -m syntropy worlds
 python -m syntropy axioms @law:civil-code-obligations
 
 # Install SKILL.md into the active repository (.agents/skills, .claude/skills, .cursor/rules):
-python -m syntropy install-skill
 ```
 
 ```python

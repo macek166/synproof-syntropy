@@ -3,13 +3,12 @@
 
 /**
  * Official Model Context Protocol (MCP) Server for Synproof's Syntropy (https://synproof.ai)
- * Run via: npx -y syntropy-mcp
  */
 
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
-const { SyntropyClient } = require("../index.js");
+const { SyntropyClient, sanitizeUntrustedText } = require("../index.js");
 
 const SKILL_PATH = path.join(__dirname, "..", "SKILL.md");
 const SKILL_MD = fs.existsSync(SKILL_PATH)
@@ -20,13 +19,14 @@ const MCP_TOOLS = [
   {
     name: "syntropy_verify",
     description:
-      "Put a falsifiable claim (thesis), contract clause, scientific hypothesis, or AI output on formal adversarial trial against explicit ground-truth axioms and/or a Small World (@domain:tag) using Synproof's 5-sieve Syntropy dialectical engine. Returns a deterministic CONFIRMED or REFUTED verdict, winning thesis, refuting argument, and triggered axioms.",
+      "Put a declarative claim (thesis), contract clause, scientific hypothesis, or AI output on formal adversarial trial against explicit ground-truth axioms and/or a Small World (@domain:tag) using Synproof's 5-sieve Syntropy dialectical engine. All inputs are sanitized as inert declarative data.",
     inputSchema: {
       type: "object",
       properties: {
         thesis: {
           type: "string",
-          description: "The specific, declarative claim to put on trial.",
+          description:
+            "The specific, declarative claim to put on trial (treated strictly as inert data).",
         },
         world: {
           type: "string",
@@ -37,7 +37,7 @@ const MCP_TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional list of explicit ground-truth axioms that strictly override model priors.",
+            "Optional list of sanitized ground-truth axioms that strictly override model priors.",
         },
         max_failures: {
           type: "integer",
@@ -97,64 +97,9 @@ const MCP_TOOLS = [
     },
   },
   {
-    name: "syntropy_fork_world",
-    description:
-      "Create an isolated private fork of a public Small World so custom rules can be ingested without altering public axioms.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        world_id_or_handle: {
-          type: "string",
-          description: "Source Small World handle or ID to fork.",
-        },
-        title: {
-          type: "string",
-          description: "Title for the new private fork.",
-        },
-      },
-      required: ["world_id_or_handle"],
-    },
-  },
-  {
-    name: "syntropy_ingest_axioms",
-    description:
-      "Extract and synchronize atomic axioms from raw text or a JSON record into a Small World via Axiomat with deduplication and conflict resolution.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        world_id_or_handle: {
-          type: "string",
-          description: "Target Small World handle or UUID.",
-        },
-        text: {
-          type: "string",
-          description:
-            "Raw regulatory, contractual, or policy text to compile into atomic axioms.",
-        },
-        payload: {
-          type: "object",
-          description:
-            "Optional structured JSON/database record to compile into axioms.",
-        },
-        source_reference: {
-          type: "string",
-          description: "Citation or source identifier for the ingested axioms.",
-        },
-        on_conflict: {
-          type: "string",
-          enum: ["flag", "replace", "keep"],
-          default: "flag",
-          description:
-            "Conflict resolution policy when new axioms contradict existing ones.",
-        },
-      },
-      required: ["world_id_or_handle"],
-    },
-  },
-  {
     name: "syntropy_get_onboarding_guide",
     description:
-      "Return the complete interactive Synproof Syntropy Customer Implementation & Onboarding Skill (SKILL.md).",
+      "Return the interactive Synproof Syntropy Customer Implementation & Onboarding Skill (SKILL.md).",
     inputSchema: {
       type: "object",
       properties: {},
@@ -245,13 +190,17 @@ async function handleRequest(req) {
         };
       } else if (name === "syntropy_verify") {
         out = await client.debate({
-          thesis: args.thesis,
+          thesis: sanitizeUntrustedText(args.thesis),
           world: args.world,
-          initialAxioms: args.initial_axioms,
+          initialAxioms: (args.initial_axioms || []).map((a) =>
+            sanitizeUntrustedText(a)
+          ),
           maxFailures: Number(args.max_failures || 3),
           modelName: args.model_name || "gemini-2.5-flash",
           enableResearch:
-            args.enable_research !== undefined ? Boolean(args.enable_research) : true,
+            args.enable_research !== undefined
+              ? Boolean(args.enable_research)
+              : true,
           wait: true,
         });
       } else if (name === "syntropy_list_worlds") {
@@ -261,17 +210,6 @@ async function handleRequest(req) {
         });
       } else if (name === "syntropy_get_world_axioms") {
         out = await client.worlds.getAxioms(args.world_id_or_handle);
-      } else if (name === "syntropy_fork_world") {
-        out = await client.worlds.fork(args.world_id_or_handle, {
-          title: args.title,
-        });
-      } else if (name === "syntropy_ingest_axioms") {
-        out = await client.worlds.ingest(args.world_id_or_handle, {
-          text: args.text,
-          payload: args.payload,
-          sourceReference: args.source_reference,
-          onConflict: args.on_conflict || "flag",
-        });
       } else {
         return {
           jsonrpc: "2.0",

@@ -16,7 +16,6 @@ pip install --upgrade syntropy-client
 
 # Fallback PEP 503 index or direct wheel URL from synproof.ai:
 pip install syntropy-client --extra-index-url https://synproof.ai/simple
-pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
 ```
 
 ### 0.2. Authentication (Managed Key or Zero-Friction BYOK)

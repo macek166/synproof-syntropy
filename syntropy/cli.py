@@ -1,9 +1,8 @@
-import os
 import sys
 import json
 import argparse
 from typing import List, Optional
-from .client import SyntropyClient, DebateVerdict
+from .client import SyntropyClient, DebateVerdict, sanitize_untrusted_text
 from .mcp_server import run_stdio_mcp_server
 from .skill_template import SKILL_MD_CONTENT
 
@@ -13,14 +12,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         prog="syntropy",
         description="Synproof's Syntropy CLI & MCP Server — Deterministic Dialectical Verification Layer for AI (https://synproof.ai)",
     )
-    parser.add_argument("--api-key", help="Syntropy API key (syn_mng_... or syn_byok_...) or set SYNTROPY_API_KEY")
-    parser.add_argument("--llm-key", help="Optional BYOK LLM API key (AIza... or sk-or-v1-...) or set GEMINI_API_KEY / OPENROUTER_API_KEY")
+    parser.add_argument("--api-key", help="Syntropy API key or set SYNTROPY_API_KEY in environment")
     parser.add_argument("--base-url", help="API base URL (default: https://api.synproof.ai)")
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
     # 1. syntropy verify "<thesis>"
-    p_verify = subparsers.add_parser("verify", help="Verify a thesis against a Small World and/or explicit axioms")
+    p_verify = subparsers.add_parser("verify", help="Verify a declarative thesis against a Small World and/or explicit axioms")
     p_verify.add_argument("thesis", help="The falsifiable claim to put on trial")
     p_verify.add_argument("-w", "--world", help="Small World handle(s), e.g. @pravo:obcansky-zakonik-cz")
     p_verify.add_argument("-a", "--axiom", action="append", default=[], help="Inline ground-truth axiom (can be passed multiple times)")
@@ -40,34 +38,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_axioms.add_argument("world", help="Small World handle (e.g. @pravo:obcansky-zakonik-cz) or UUID")
     p_axioms.add_argument("--json", action="store_true", help="Output raw JSON")
 
-    # 4. syntropy fork <world>
-    p_fork = subparsers.add_parser("fork", help="Create an isolated private fork of a Small World")
-    p_fork.add_argument("world", help="Source Small World handle or UUID")
-    p_fork.add_argument("--title", help="Title for the private fork")
-    p_fork.add_argument("--json", action="store_true", help="Output raw JSON")
-
-    # 5. syntropy ingest <world>
-    p_ingest = subparsers.add_parser("ingest", help="Ingest text, JSON payload, or file into a Small World via Axiomat")
-    p_ingest.add_argument("world", help="Target Small World handle or UUID")
-    p_ingest.add_argument("--text", help="Raw text to extract atomic axioms from")
-    p_ingest.add_argument("--payload", help="JSON string payload to extract atomic axioms from")
-    p_ingest.add_argument("--file", help="Path to PDF/DOCX/TXT/MD file to extract axioms from")
-    p_ingest.add_argument("--source", help="Source reference citation")
-    p_ingest.add_argument("--on-conflict", choices=["flag", "replace", "keep"], default="flag", help="Conflict resolution mode")
-    p_ingest.add_argument("--json", action="store_true", help="Output raw JSON")
-
-    # 6. syntropy mcp
+    # 4. syntropy mcp
     subparsers.add_parser("mcp", help="Start the built-in Model Context Protocol (MCP) stdio server for AI agents")
 
-    # 7. syntropy skill
-    subparsers.add_parser("skill", help="Print the full interactive SKILL.md implementation guide for AI agents")
-
-    # 8. syntropy install-skill
-    p_install_skill = subparsers.add_parser(
-        "install-skill",
-        help="Install the Synproof Syntropy SKILL.md into the current workspace (.agents/skills, .claude/skills, .cursor/rules)",
-    )
-    p_install_skill.add_argument("--dir", default=".", help="Target project root directory (default: current directory)")
+    # 5. syntropy skill
+    subparsers.add_parser("skill", help="Print the interactive SKILL.md implementation guide for AI agents")
 
     args = parser.parse_args(argv)
     if not args.command:
@@ -82,36 +57,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(SKILL_MD_CONTENT)
         return 0
 
-    if args.command == "install-skill":
-        root = os.path.abspath(args.dir)
-        targets = [
-            os.path.join(root, ".agents", "skills", "synproof-syntropy", "SKILL.md"),
-            os.path.join(root, ".claude", "skills", "synproof-syntropy", "SKILL.md"),
-            os.path.join(root, ".cursor", "rules", "synproof-syntropy.mdc"),
-        ]
-        installed = []
-        for t in targets:
-            os.makedirs(os.path.dirname(t), exist_ok=True)
-            with open(t, "w", encoding="utf-8") as f:
-                f.write(SKILL_MD_CONTENT)
-            installed.append(t)
-        print("Installed Synproof's Syntropy Interactive Skill to:")
-        for p in installed:
-            print(f"  - {p}")
-        return 0
-
     client = SyntropyClient(
         api_key=args.api_key,
-        llm_api_key=args.llm_key,
         base_url=args.base_url,
     )
 
     try:
         if args.command == "verify":
+            safe_thesis = sanitize_untrusted_text(args.thesis)
+            safe_axioms = [sanitize_untrusted_text(a) for a in (args.axiom or [])]
             verdict = client.debate.verify(
-                thesis=args.thesis,
+                thesis=safe_thesis,
                 world=args.world,
-                initial_axioms=args.axiom,
+                initial_axioms=safe_axioms,
                 max_failures=args.max_failures,
                 model_name=args.model,
                 enable_research=not args.no_research,
@@ -164,24 +122,6 @@ def main(argv: Optional[List[str]] = None) -> int:
                     stmt = ax.get("statement") or ax.get("axiom_text") or ""
                     src = ax.get("source_reference") or ax.get("source_ref") or ""
                     print(f"  {i}. {stmt} [{src}]")
-            return 0
-
-        if args.command == "fork":
-            res = client.worlds.fork(args.world, title=args.title)
-            print(json.dumps(res, ensure_ascii=False, indent=2))
-            return 0
-
-        if args.command == "ingest":
-            payload_obj = json.loads(args.payload) if args.payload else None
-            res = client.worlds.ingest(
-                args.world,
-                text=args.text,
-                payload=payload_obj,
-                file_path=args.file,
-                source_reference=args.source,
-                on_conflict=args.on_conflict,
-            )
-            print(json.dumps(res, ensure_ascii=False, indent=2))
             return 0
 
     except Exception as exc:
