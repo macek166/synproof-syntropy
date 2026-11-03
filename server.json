@@ -7,38 +7,10 @@
     "url": "https://github.com/macek166/synproof-syntropy",
     "source": "github"
   },
-  "packages": [
+  "remotes": [
     {
-      "registryType": "npm",
-      "identifier": "syntropy-mcp",
-      "version": "2.5.0",
-      "transport": {
-        "type": "stdio"
-      },
-      "environmentVariables": [
-        {
-          "name": "SYNTROPY_API_KEY",
-          "description": "Synproof Syntropy API key (or Gemini / OpenRouter BYOK key). Obtain at https://synproof.ai",
-          "isRequired": true,
-          "isSecret": true
-        }
-      ]
-    },
-    {
-      "registryType": "pypi",
-      "identifier": "syntropy-client",
-      "version": "2.5.0",
-      "transport": {
-        "type": "stdio"
-      },
-      "environmentVariables": [
-        {
-          "name": "SYNTROPY_API_KEY",
-          "description": "Synproof Syntropy API key (or Gemini / OpenRouter BYOK key). Obtain at https://synproof.ai",
-          "isRequired": true,
-          "isSecret": true
-        }
-      ]
+      "type": "streamable-http",
+      "url": "https://api.synproof.ai/v1/mcp"
     }
   ]
 }
