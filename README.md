@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](./LICENSE)
 
 > **Language models guess. Syntropy proves.**  
-> **Synproof's Syntropy** ([https://synproof.ai](https://synproof.ai)) is a deterministic 5-sieve dialectical verification engine and Small Worlds axiom library for AI agents, legal compliance, scientific verification, and enterprise decision pipelines.
+> The formal verification engine for AI outputs, contracts, scientific hypotheses, and critical decisions. Mapping natural-language semantics directly onto propositional logic, **Synproof's Syntropy** ([https://synproof.ai](https://synproof.ai)) tests any claim against your ground-truth **Small Worlds** — eliminating hallucinations and returning a binary verdict (`CONFIRMED` or `REFUTED`) with a clear, defensible argument or counter-argument.
 
 ---
 
