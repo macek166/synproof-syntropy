@@ -18,6 +18,7 @@
 | :--- | :--- |
 | **Web Platform & Interactive Studio** | [https://synproof.ai](https://synproof.ai) |
 | **Developer Documentation (20 Chapters)** | [https://synproof.ai/docs](https://synproof.ai/docs) |
+| **OpenRouter Integration Guide** | [https://synproof.ai/docs/openrouter](https://synproof.ai/docs/openrouter) |
 | **How the 5-Sieve Architecture Works** | [https://synproof.ai/how-it-works](https://synproof.ai/how-it-works) |
 | **AI Coding Agent Skill (`SKILL.md`)** | [https://synproof.ai/SKILL.md](https://synproof.ai/SKILL.md) |
 | **OpenAPI 3.1 Specification** | [https://synproof.ai/openapi.json](https://synproof.ai/openapi.json) |
@@ -112,7 +113,28 @@ Works with **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, **Clin
 
 ---
 
-## 4. Security & Data Isolation
+## 4. Works with OpenRouter (BYOK & Multi-Model Dialectical Routing)
+
+Synproof's Syntropy natively integrates with **[OpenRouter](https://openrouter.ai)** (`https://synproof.ai/docs/openrouter`). You can bring your own OpenRouter API key (`OPENROUTER_API_KEY`) to run formal 5-sieve dialectical verification across any OpenRouter model (`anthropic/claude-3.5-sonnet`, `anthropic/claude-3.7-sonnet`, `deepseek/deepseek-r1`, `openai/gpt-4o`, `openai/o3-mini`, `google/gemini-2.5-pro`, `meta-llama/llama-3.3-70b-instruct`).
+
+```python
+from syntropy import SyntropyClient
+
+# Uses OPENROUTER_API_KEY (or SYNTROPY_API_KEY) configured in your runtime environment
+client = SyntropyClient()
+
+verdict = client.debate(
+    thesis="GDPR requires notifying the supervisory authority of a personal data breach within 72 hours.",
+    world="@law:eu-gdpr-data-protection",
+    model_name="anthropic/claude-3.5-sonnet",  # Any OpenRouter vendor/model slug
+    max_failures=3,
+)
+print(verdict.status, verdict.winning_thesis)
+```
+
+---
+
+## 5. Security & Data Isolation
 
 - **Zero Credential Scanning:** The skill never inspects `.env` files or local credentials. Developers configure `SYNTROPY_API_KEY` in their own runtime environment.
 - **Official Registry Only:** Distributed exclusively via PyPI (`syntropy-client`) and GitHub (`macek166/synproof-syntropy`).
