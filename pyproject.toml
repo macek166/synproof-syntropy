@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "syntropy-client"
-version = "2.5.0"
+version = "2.6.0"
 description = "Official Python SDK, CLI & MCP Server for Synproof's Syntropy — The Deterministic Dialectical Verification Layer for AI"
 readme = "README.md"
 license = { text = "MIT" }

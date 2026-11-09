@@ -44,6 +44,84 @@ class SyntropyClient {
           "GET",
           `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/axioms`
         ),
+      fork: (worldIdOrHandle, { title, description, isPublic = false } = {}) =>
+        this._request(
+          "POST",
+          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/fork`,
+          { title, description, is_public: isPublic }
+        ),
+      ingest: (
+        worldIdOrHandle,
+        { text, payload, sourceReference, onConflict = "flag" } = {}
+      ) =>
+        this._request(
+          "POST",
+          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/ingest`,
+          {
+            raw_text: text,
+            payload,
+            source_reference: sourceReference,
+            on_conflict: onConflict,
+          }
+        ),
+      registerConnector: (
+        worldIdOrHandle,
+        {
+          name,
+          connectorType = "rest_webhook",
+          endpointUrl,
+          method = "POST",
+          headers = {},
+          description,
+          timeoutMs = 4000,
+          responseAxiomsPath,
+          rowTemplate,
+          staticRows,
+          enabled = true,
+        } = {}
+      ) =>
+        this._request(
+          "POST",
+          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/connectors`,
+          {
+            name,
+            connector_type: connectorType,
+            endpoint_url: endpointUrl,
+            method,
+            headers,
+            description,
+            timeout_ms: timeoutMs,
+            response_axioms_path: responseAxiomsPath,
+            row_template: rowTemplate,
+            static_rows: staticRows,
+            enabled,
+          }
+        ),
+      listConnectors: (worldIdOrHandle) =>
+        this._request(
+          "GET",
+          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/connectors`
+        ),
+      deleteConnector: (worldIdOrHandle, connectorId) =>
+        this._request(
+          "DELETE",
+          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/connectors/${encodeURIComponent(connectorId)}`
+        ),
+      queryConnector: (
+        worldIdOrHandle,
+        connectorId,
+        { query = "", thesis, ingestIntoWorld = false, onConflict = "flag" } = {}
+      ) =>
+        this._request(
+          "POST",
+          `/v1/worlds/${encodeURIComponent(worldIdOrHandle)}/connectors/${encodeURIComponent(connectorId)}/query`,
+          {
+            query,
+            thesis,
+            ingest_into_world: ingestIntoWorld,
+            on_conflict: onConflict,
+          }
+        ),
     };
   }
 
@@ -82,6 +160,9 @@ class SyntropyClient {
     thesis,
     world,
     initialAxioms = [],
+    axiomProvider,
+    customConnectors,
+    connectors,
     maxFailures = 3,
     modelName,
     enableResearch = true,
@@ -99,7 +180,22 @@ class SyntropyClient {
     const safeThesis = sanitizeUntrustedText(thesis);
     const safeAxioms = (initialAxioms || []).map((a) => sanitizeUntrustedText(a));
 
-    const startRes = await this._request("POST", "/v1/debate", {
+    if (typeof axiomProvider === "function") {
+      const resolved = await axiomProvider(safeThesis);
+      const list = Array.isArray(resolved) ? resolved : [resolved];
+      for (const item of list) {
+        if (item) {
+          const clean = sanitizeUntrustedText(
+            typeof item === "object" ? JSON.stringify(item) : String(item)
+          );
+          if (clean && !safeAxioms.includes(clean)) {
+            safeAxioms.push(clean);
+          }
+        }
+      }
+    }
+
+    const payload = {
       thesis: safeThesis,
       world,
       initial_axioms: safeAxioms,
@@ -107,7 +203,14 @@ class SyntropyClient {
       enable_research: enableResearch,
       model_name: effectiveModel,
       llm_provider: llmProvider,
-    });
+    };
+
+    const effectiveConns = customConnectors || connectors;
+    if (Array.isArray(effectiveConns) && effectiveConns.length > 0) {
+      payload.custom_connectors = effectiveConns;
+    }
+
+    const startRes = await this._request("POST", "/v1/debate", payload);
 
     if (!wait) return startRes;
 

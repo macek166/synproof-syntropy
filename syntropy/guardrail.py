@@ -1,7 +1,13 @@
 import functools
 import inspect
-from typing import Any, Callable, List, Literal, Optional, Union
-from .client import SyntropyClient, DebateVerdict, SyntropyGuardrailError
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from .client import (
+    SyntropyClient,
+    DebateVerdict,
+    SyntropyGuardrailError,
+    _resolve_axiom_providers_sync,
+    _resolve_axiom_providers_async,
+)
 
 
 def _default_extract_thesis(output: Any) -> str:
@@ -21,14 +27,19 @@ def _default_extract_thesis(output: Any) -> str:
 class AgentGuardrailMiddleware:
     """
     Reusable epistemic guardrail middleware for AI Agents, LangChain Runnables,
-    and database write pipelines. Verifies outputs against a Small World (`@domain:tag`)
-    and/or explicit ground-truth axioms before allowing downstream execution.
+    and database write pipelines. Verifies outputs against a Small World (`@domain:tag`),
+    explicit ground-truth axioms, local `axiom_provider` callbacks (SQL/API/sub-agents),
+    and/or live `custom_connectors` before allowing downstream execution.
     """
 
     def __init__(
         self,
         world: Optional[str] = None,
         initial_axioms: Optional[List[str]] = None,
+        axioms: Optional[List[str]] = None,
+        axiom_provider: Optional[Union[Callable, List[Callable]]] = None,
+        custom_connectors: Optional[List[Dict[str, Any]]] = None,
+        connectors: Optional[List[Dict[str, Any]]] = None,
         client: Optional[SyntropyClient] = None,
         on_refuted: Literal["raise", "return_verdict", "fallback", "annotate"] = "raise",
         fallback_fn: Optional[Union[Callable[[Any, DebateVerdict], Any], Any]] = None,
@@ -40,7 +51,9 @@ class AgentGuardrailMiddleware:
         enable_research: bool = False,
     ):
         self.world = world
-        self.initial_axioms = initial_axioms or []
+        self.initial_axioms = list(initial_axioms or axioms or [])
+        self.axiom_provider = axiom_provider
+        self.custom_connectors = custom_connectors if custom_connectors is not None else connectors
         self.client = client or SyntropyClient()
         self.on_refuted = on_refuted
         self.fallback_fn = fallback_fn
@@ -140,13 +153,20 @@ class AgentGuardrailMiddleware:
             }
         return agent_output
 
-    def verify(self, agent_output: Any) -> Any:
-        """Synchronously verifies an agent's output against the configured Small World."""
+    def verify(self, agent_output: Any, *agent_args: Any, **agent_kwargs: Any) -> Any:
+        """Synchronously verifies an agent's output against the configured Small World and dynamic providers."""
         thesis = self.extract_thesis(agent_output)
+        merged_axioms = list(self.initial_axioms)
+        if self.axiom_provider is not None:
+            for dyn_ax in _resolve_axiom_providers_sync(self.axiom_provider, thesis, *agent_args, **agent_kwargs):
+                if dyn_ax not in merged_axioms:
+                    merged_axioms.append(dyn_ax)
+
         verdict = self.client.debate(
             thesis=thesis,
             world=self.world,
-            initial_axioms=self.initial_axioms,
+            initial_axioms=merged_axioms,
+            custom_connectors=self.custom_connectors,
             max_failures=self.max_failures,
             enable_research=self.enable_research,
             model_name=self.model_name,
@@ -155,13 +175,22 @@ class AgentGuardrailMiddleware:
         assert isinstance(verdict, DebateVerdict)
         return self._handle_verdict(agent_output, verdict)
 
-    async def averify(self, agent_output: Any) -> Any:
-        """Asynchronously verifies an agent's output against the configured Small World."""
+    async def averify(self, agent_output: Any, *agent_args: Any, **agent_kwargs: Any) -> Any:
+        """Asynchronously verifies an agent's output against the configured Small World and dynamic providers."""
         thesis = self.extract_thesis(agent_output)
+        merged_axioms = list(self.initial_axioms)
+        if self.axiom_provider is not None:
+            for dyn_ax in await _resolve_axiom_providers_async(
+                self.axiom_provider, thesis, *agent_args, **agent_kwargs
+            ):
+                if dyn_ax not in merged_axioms:
+                    merged_axioms.append(dyn_ax)
+
         verdict = await self.client.adebate(
             thesis=thesis,
             world=self.world,
-            initial_axioms=self.initial_axioms,
+            initial_axioms=merged_axioms,
+            custom_connectors=self.custom_connectors,
             max_failures=self.max_failures,
             enable_research=self.enable_research,
             model_name=self.model_name,
@@ -174,6 +203,10 @@ class AgentGuardrailMiddleware:
 def verify_agent_output(
     world: Optional[str] = None,
     initial_axioms: Optional[List[str]] = None,
+    axioms: Optional[List[str]] = None,
+    axiom_provider: Optional[Union[Callable, List[Callable]]] = None,
+    custom_connectors: Optional[List[Dict[str, Any]]] = None,
+    connectors: Optional[List[Dict[str, Any]]] = None,
     client: Optional[SyntropyClient] = None,
     on_refuted: Literal["raise", "return_verdict", "fallback", "annotate"] = "raise",
     fallback_fn: Optional[Union[Callable[[Any, DebateVerdict], Any], Any]] = None,
@@ -186,12 +219,17 @@ def verify_agent_output(
 ) -> Callable:
     """
     Decorator that wraps any synchronous or asynchronous AI agent function and
-    formally verifies its output against a Syntropy Small World (`@domain:tag`)
+    formally verifies its output against a Syntropy Small World (`@domain:tag`),
+    inline axioms, local `axiom_provider` callbacks, and/or live `custom_connectors`
     before returning it to the caller or writing to a database.
     """
     middleware = AgentGuardrailMiddleware(
         world=world,
         initial_axioms=initial_axioms,
+        axioms=axioms,
+        axiom_provider=axiom_provider,
+        custom_connectors=custom_connectors,
+        connectors=connectors,
         client=client,
         on_refuted=on_refuted,
         fallback_fn=fallback_fn,
@@ -208,13 +246,13 @@ def verify_agent_output(
             @functools.wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 raw_output = await func(*args, **kwargs)
-                return await middleware.averify(raw_output)
+                return await middleware.averify(raw_output, *args, **kwargs)
             return async_wrapper
         else:
             @functools.wraps(func)
             def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
                 raw_output = func(*args, **kwargs)
-                return middleware.verify(raw_output)
+                return middleware.verify(raw_output, *args, **kwargs)
             return sync_wrapper
 
     return decorator

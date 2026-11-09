@@ -105,11 +105,68 @@ Works with **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, **Clin
 }
 ```
 
-### Exposed Read & Verification MCP Tools
-- `syntropy_verify` — Put any declarative claim, code assumption, or legal clause on formal 5-sieve dialectical trial against a Small World.
+### Exposed Read, Verification & Custom Connector MCP Tools
+- `syntropy_verify` — Put any declarative claim, code assumption, or legal clause on formal 5-sieve dialectical trial against a Small World (and optional live `connectors`).
 - `syntropy_list_worlds` — List verified public Small Worlds (`@law:...`, `@pravo:...`, `@medicine:...`, `@finance:...`, `@physics:...`).
 - `syntropy_get_world_axioms` — Inspect all atomic axioms of a Small World.
-- `syntropy_get_onboarding_guide` — Retrieve the interactive implementation guide (`SKILL.md`).
+- `syntropy_fork_world` — Create an isolated private fork of a public Small World.
+- `syntropy_ingest_axioms` — Compile unstructured text or JSON/DB records into atomic axioms via Axiomat.
+- `syntropy_register_connector` — Attach a persistent Custom Epistemic Connector (`rest_api`, `sql_postgrest`, `agent_webhook`, `graphql`) to a Small World (`SourceTier.CUSTOMER_SOT = 95`).
+- `syntropy_list_connectors` — List registered Custom Epistemic Connectors on a Small World.
+- `syntropy_query_connector` — Test-query a registered Custom Epistemic Connector and inspect extracted axioms.
+
+---
+
+## 3.5. Custom Epistemic Connectors — SQL Tables, REST APIs & Data-Retrieval Sub-Agents (`SourceTier.CUSTOMER_SOT = 95`)
+
+AI engineers can wire their own live databases, internal APIs, and specialized data-retrieval sub-agents directly into Syntropy's verification layer using 3 patterns:
+
+```python
+from syntropy import SyntropyClient, verify_agent_output
+
+client = SyntropyClient()
+
+# Pattern 1: Zero-Trust Local SDK Callback (`axiom_provider` — DB credentials never leave your VPC!)
+def fetch_customer_sql_facts(thesis: str, user_id: str) -> list[dict]:
+    return [
+        {"axiom": f"Customer {user_id} is on the Enterprise SLA tier with a 99.99% uptime guarantee."},
+        {"axiom": f"Customer {user_id} has a maximum automatic refund limit of 10,000 EUR."},
+    ]
+
+@verify_agent_output(
+    world="@law:contract-act",
+    axiom_provider=fetch_customer_sql_facts,
+    on_refuted="fallback",
+    client=client,
+)
+async def billing_support_agent(user_id: str, question: str) -> dict:
+    return {"answer": f"Customer {user_id} is only eligible for a 500 EUR maximum refund."}
+
+# Pattern 2: Persistent Small World Epistemic Connector (`register_connector`)
+client.worlds.register_connector(
+    "@law:contract-act",
+    name="Enterprise ERP Pricing & SLA API",
+    endpoint_url="https://erp.example.com/api/v1/sla-rules?q={query}",
+    connector_type="rest_api",  # "rest_api" | "sql_postgrest" | "agent_webhook" | "graphql"
+    response_axioms_path="data.rules",
+    row_template="Tier {tier} enforces max liability {max_liability_eur} EUR.",
+)
+
+# Pattern 3: Inline Ephemeral Connectors per Verification Call (`custom_connectors`)
+verdict = client.debate(
+    thesis="Order #90210 qualifies for instant autonomous customs clearance.",
+    world="@law:contract-act",
+    custom_connectors=[
+        {
+            "name": "Compliance Retrieval Sub-Agent",
+            "connector_type": "agent_webhook",
+            "method": "POST",
+            "endpoint_url": "https://agents.example.com/retrieve-customs-facts",
+            "response_axioms_path": "facts",
+        }
+    ],
+)
+```
 
 ---
 

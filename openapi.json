@@ -1,10 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Synproof's Syntropy — Deterministic Verification & Small Worlds API",
+    "title": "Synproof's Syntropy \u2014 Deterministic Verification & Small Worlds API",
     "summary": "Language models guess. Syntropy proves. 5-Sieve Dialectical Verification Engine, Small Worlds Axiom Library & Axiomat Compiler.",
-    "description": "Official Production Control Plane API for Synproof's Syntropy (https://synproof.ai). Install the Python SDK, CLI & MCP server from PyPI via `pip install syntropy-client` (https://pypi.org/project/syntropy-client/). Full Autonomous Agent Skill: https://synproof.ai/SKILL.md | LLM Documentation: https://synproof.ai/llms-full.txt",
-    "version": "2.5.0",
+    "description": "Official Production Control Plane API for **Synproof's Syntropy** (`https://synproof.ai`).\n\n- **Python SDK, CLI & MCP Server (`syntropy-client`):** `pip install syntropy-client` ([PyPI](https://pypi.org/project/syntropy-client/))\n- **Autonomous Agent Skill (`SKILL.md`):** `https://synproof.ai/SKILL.md`\n- **LLM Documentation (`llms.txt` / `llms-full.txt`):** `https://synproof.ai/llms.txt` | `https://synproof.ai/llms-full.txt`\n- **MCP Discovery Manifest:** `https://synproof.ai/.well-known/mcp.json`\n- **Interactive Developer Docs:** `https://synproof.ai/docs`",
     "contact": {
       "name": "Synproof Developer Support",
       "url": "https://synproof.ai/docs",
@@ -13,8 +12,19 @@
     "license": {
       "name": "MIT",
       "url": "https://opensource.org/licenses/MIT"
-    }
+    },
+    "version": "2.5.0"
   },
+  "servers": [
+    {
+      "url": "https://api.synproof.ai",
+      "description": "Synproof's Syntropy Production API"
+    },
+    {
+      "url": "https://synproof.ai",
+      "description": "Synproof's Syntropy Web & Static Discovery Host"
+    }
+  ],
   "paths": {
     "/v1/world": {
       "post": {
@@ -202,7 +212,7 @@
           "API Keys"
         ],
         "summary": "Create Api Key",
-        "description": "Vygeneruje nový SDK API klíč pro přihlášeného uživatele (Managed nebo BYOK).",
+        "description": "Vygeneruje nov\u00fd SDK API kl\u00ed\u010d pro p\u0159ihl\u00e1\u0161en\u00e9ho u\u017eivatele (Managed nebo BYOK).",
         "operationId": "create_api_key_v1_api_keys_post",
         "security": [
           {
@@ -281,7 +291,7 @@
           "API Keys"
         ],
         "summary": "List Api Keys",
-        "description": "Vrátí seznam klíčů uživatele (ale jen jejich prefixy, nikdy ne celé klíče).",
+        "description": "Vr\u00e1t\u00ed seznam kl\u00ed\u010d\u016f u\u017eivatele (ale jen jejich prefixy, nikdy ne cel\u00e9 kl\u00ed\u010de).",
         "operationId": "list_api_keys_v1_api_keys_get",
         "security": [
           {
@@ -350,7 +360,7 @@
           "API Keys"
         ],
         "summary": "Update Api Key",
-        "description": "Deaktivuje nebo aktivuje API klíč, případně změní jeho název.",
+        "description": "Deaktivuje nebo aktivuje API kl\u00ed\u010d, p\u0159\u00edpadn\u011b zm\u011bn\u00ed jeho n\u00e1zev.",
         "operationId": "update_api_key_v1_api_keys__key_id__patch",
         "security": [
           {
@@ -436,7 +446,7 @@
           "API Keys"
         ],
         "summary": "Delete Api Key",
-        "description": "Trvale smaže / odvolá zadaný API klíč.",
+        "description": "Trvale sma\u017ee / odvol\u00e1 zadan\u00fd API kl\u00ed\u010d.",
         "operationId": "delete_api_key_v1_api_keys__key_id__delete",
         "security": [
           {
@@ -1080,7 +1090,7 @@
           "Small Worlds & Axiomat"
         ],
         "summary": "Fork World",
-        "description": "Vytvoří soukromou upravitelnou kopii (Fork) libovolného veřejného nebo oficiálního\nverifikovaného Malého světa v účtu uživatele (`is_public = False`).\nVeřejný originál zůstává 100% nedotčený.",
+        "description": "Vytvo\u0159\u00ed soukromou upravitelnou kopii (Fork) libovoln\u00e9ho ve\u0159ejn\u00e9ho nebo ofici\u00e1ln\u00edho\nverifikovan\u00e9ho Mal\u00e9ho sv\u011bta v \u00fa\u010dtu u\u017eivatele (`is_public = False`).\nVe\u0159ejn\u00fd origin\u00e1l z\u016fst\u00e1v\u00e1 100% nedot\u010den\u00fd.",
         "operationId": "fork_world_v1_worlds__world_id__fork_post",
         "security": [
           {
@@ -1175,7 +1185,7 @@
           "Small Worlds & Axiomat"
         ],
         "summary": "Ingest Into World Via Axiomat",
-        "description": "Live Axiomat Ingest API (pro AI inženýry, databázové triggery, webhooky i UI Studio):\nPřijímá buď:\n1) `application/json`: `{\"text\": \"...\", \"payload\": {...}, \"source_reference\": \"DB:row#12\", \"on_conflict\": \"flag\" | \"replace\" | \"keep\"}`\n2) `multipart/form-data`: `file` (PDF/DOCX/TXT/MD) nebo `raw_text`, `source_reference`, `on_conflict`.\n\n- Pokud `world_id` odkazuje na veřejný/oficiální svět, který uživateli nepatří, automaticky vytvoří/použije\n  jeho soukromý fork v jeho účtu (veřejný svět se nikdy nemění!).\n- Spustí 2-fázovou extrakci v Axiomatu + JEV 6-bodový epistemický audit.\n- Zrekonciliuje nové axiomy se stávajícími axiomy ve světě (automatická deduplikace + detekce kolizí s příznakem `flagged_for_review` nebo přepisem `replace`).",
+        "description": "Live Axiomat Ingest API (pro AI in\u017een\u00fdry, datab\u00e1zov\u00e9 triggery, webhooky i UI Studio):\nP\u0159ij\u00edm\u00e1 bu\u010f:\n1) `application/json`: `{\"text\": \"...\", \"payload\": {...}, \"source_reference\": \"DB:row#12\", \"on_conflict\": \"flag\" | \"replace\" | \"keep\"}`\n2) `multipart/form-data`: `file` (PDF/DOCX/TXT/MD) nebo `raw_text`, `source_reference`, `on_conflict`.\n\n- Pokud `world_id` odkazuje na ve\u0159ejn\u00fd/ofici\u00e1ln\u00ed sv\u011bt, kter\u00fd u\u017eivateli nepat\u0159\u00ed, automaticky vytvo\u0159\u00ed/pou\u017eije\n  jeho soukrom\u00fd fork v jeho \u00fa\u010dtu (ve\u0159ejn\u00fd sv\u011bt se nikdy nem\u011bn\u00ed!).\n- Spust\u00ed 2-f\u00e1zovou extrakci v Axiomatu + JEV 6-bodov\u00fd epistemick\u00fd audit.\n- Zrekonciliuje nov\u00e9 axiomy se st\u00e1vaj\u00edc\u00edmi axiomy ve sv\u011bt\u011b (automatick\u00e1 deduplikace + detekce koliz\u00ed s p\u0159\u00edznakem `flagged_for_review` nebo p\u0159episem `replace`).",
         "operationId": "ingest_into_world_via_axiomat_v1_worlds__world_id__ingest_post",
         "security": [
           {
@@ -1253,7 +1263,7 @@
           "Small Worlds & Axiomat"
         ],
         "summary": "Ingest Into World Via Axiomat",
-        "description": "Live Axiomat Ingest API (pro AI inženýry, databázové triggery, webhooky i UI Studio):\nPřijímá buď:\n1) `application/json`: `{\"text\": \"...\", \"payload\": {...}, \"source_reference\": \"DB:row#12\", \"on_conflict\": \"flag\" | \"replace\" | \"keep\"}`\n2) `multipart/form-data`: `file` (PDF/DOCX/TXT/MD) nebo `raw_text`, `source_reference`, `on_conflict`.\n\n- Pokud `world_id` odkazuje na veřejný/oficiální svět, který uživateli nepatří, automaticky vytvoří/použije\n  jeho soukromý fork v jeho účtu (veřejný svět se nikdy nemění!).\n- Spustí 2-fázovou extrakci v Axiomatu + JEV 6-bodový epistemický audit.\n- Zrekonciliuje nové axiomy se stávajícími axiomy ve světě (automatická deduplikace + detekce kolizí s příznakem `flagged_for_review` nebo přepisem `replace`).",
+        "description": "Live Axiomat Ingest API (pro AI in\u017een\u00fdry, datab\u00e1zov\u00e9 triggery, webhooky i UI Studio):\nP\u0159ij\u00edm\u00e1 bu\u010f:\n1) `application/json`: `{\"text\": \"...\", \"payload\": {...}, \"source_reference\": \"DB:row#12\", \"on_conflict\": \"flag\" | \"replace\" | \"keep\"}`\n2) `multipart/form-data`: `file` (PDF/DOCX/TXT/MD) nebo `raw_text`, `source_reference`, `on_conflict`.\n\n- Pokud `world_id` odkazuje na ve\u0159ejn\u00fd/ofici\u00e1ln\u00ed sv\u011bt, kter\u00fd u\u017eivateli nepat\u0159\u00ed, automaticky vytvo\u0159\u00ed/pou\u017eije\n  jeho soukrom\u00fd fork v jeho \u00fa\u010dtu (ve\u0159ejn\u00fd sv\u011bt se nikdy nem\u011bn\u00ed!).\n- Spust\u00ed 2-f\u00e1zovou extrakci v Axiomatu + JEV 6-bodov\u00fd epistemick\u00fd audit.\n- Zrekonciliuje nov\u00e9 axiomy se st\u00e1vaj\u00edc\u00edmi axiomy ve sv\u011bt\u011b (automatick\u00e1 deduplikace + detekce koliz\u00ed s p\u0159\u00edznakem `flagged_for_review` nebo p\u0159episem `replace`).",
         "operationId": "ingest_into_world_via_axiomat_v1_worlds__world_id__axiomat_ingest_post",
         "security": [
           {
@@ -1331,7 +1341,7 @@
           "Small Worlds & Axiomat"
         ],
         "summary": "Push Axioms Batch",
-        "description": "Direct Structured Axiom Push (0 LLM tokenů, okamžitá odezva):\nUmožňuje AI inženýrům posílat z databázových triggerů nebo agentních pipeline již zformulované věty\n(jednotlivě nebo v dávce `axioms: [...]`).\n- Automaticky provede deterministickou sanitizaci (DLP, XSS, délka, kanonická interpunkce).\n- Pokud cílí na cizí veřejný svět, automaticky vytvoří/použije privátní fork v účtu daného uživatele.\n- Odfiltruje duplicity a při kolizi nastaví příznak `flagged_for_review = True` (nebo přepíše starý axiom při `on_conflict=\"replace\"`).",
+        "description": "Direct Structured Axiom Push (0 LLM token\u016f, okam\u017eit\u00e1 odezva):\nUmo\u017e\u0148uje AI in\u017een\u00fdr\u016fm pos\u00edlat z datab\u00e1zov\u00fdch trigger\u016f nebo agentn\u00edch pipeline ji\u017e zformulovan\u00e9 v\u011bty\n(jednotliv\u011b nebo v d\u00e1vce `axioms: [...]`).\n- Automaticky provede deterministickou sanitizaci (DLP, XSS, d\u00e9lka, kanonick\u00e1 interpunkce).\n- Pokud c\u00edl\u00ed na ciz\u00ed ve\u0159ejn\u00fd sv\u011bt, automaticky vytvo\u0159\u00ed/pou\u017eije priv\u00e1tn\u00ed fork v \u00fa\u010dtu dan\u00e9ho u\u017eivatele.\n- Odfiltruje duplicity a p\u0159i kolizi nastav\u00ed p\u0159\u00edznak `flagged_for_review = True` (nebo p\u0159ep\u00ed\u0161e star\u00fd axiom p\u0159i `on_conflict=\"replace\"`).",
         "operationId": "push_axioms_batch_v1_worlds__world_id__axioms_push_post",
         "security": [
           {
@@ -2162,14 +2172,350 @@
         }
       }
     },
+    "/v1/worlds/{world_id}/connectors": {
+      "post": {
+        "tags": [
+          "Small Worlds & Axiomat"
+        ],
+        "summary": "Register World Connector",
+        "description": "Registers a Custom Epistemic Connector (REST Webhook, SQL Table Snapshot, Retrieval Sub-Agent,\nor MCP Tool Bridge) on a Small World. If the target world is public and not owned by the caller,\nit is automatically forked into the caller's workspace first.",
+        "operationId": "register_world_connector_v1_worlds__world_id__connectors_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "world_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "World Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "name": "X-Syntropy-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Syntropy-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterConnectorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Small Worlds & Axiomat"
+        ],
+        "summary": "List World Connectors",
+        "description": "Lists all registered Custom Epistemic Connectors on a Small World with sensitive headers redacted.",
+        "operationId": "list_world_connectors_v1_worlds__world_id__connectors_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "world_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "World Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/worlds/{world_id}/connectors/{connector_id}": {
+      "delete": {
+        "tags": [
+          "Small Worlds & Axiomat"
+        ],
+        "summary": "Delete World Connector",
+        "description": "Deletes a registered Custom Epistemic Connector from a Small World.",
+        "operationId": "delete_world_connector_v1_worlds__world_id__connectors__connector_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "world_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "World Id"
+            }
+          },
+          {
+            "name": "connector_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Connector Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "name": "X-Syntropy-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Syntropy-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/worlds/{world_id}/connectors/{connector_id}/query": {
+      "post": {
+        "tags": [
+          "Small Worlds & Axiomat"
+        ],
+        "summary": "Query World Connector",
+        "description": "Executes a registered Custom Epistemic Connector on demand (with SSRF guard, 4s timeout,\nand sanitization) and optionally reconciles & persists the extracted facts into the Small World.",
+        "operationId": "query_world_connector_v1_worlds__world_id__connectors__connector_id__query_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "world_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "World Id"
+            }
+          },
+          {
+            "name": "connector_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Connector Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryConnectorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/models": {
       "get": {
         "tags": [
           "OpenAI & OpenRouter Bridge"
         ],
         "summary": "List Openai Compatible Models",
-        "description": "Lists Syntropy JEV epistemic models and supported multi-model backends\nin standard OpenAI / OpenRouter `/v1/models` format.",
+        "description": "Lists proprietary Synproof Syntropy verification engines (`syntropy/epistemic-verifier` and `syntropy/fast`)\nin standard OpenAI / OpenRouter `/v1/models` format without exposing internal LLM providers.",
         "operationId": "list_openai_compatible_models_v1_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/openrouter/models": {
+      "get": {
+        "tags": [
+          "OpenAI & OpenRouter Bridge"
+        ],
+        "summary": "List Openrouter Provider Models",
+        "description": "OpenRouter Provider Integration Schema v2.4 endpoint (https://openrouter.ai/docs/guides/providers/integration).\nReturns Synproof Syntropy verification models with typed input/output modality objects, pricing, and capacity.",
+        "operationId": "list_openrouter_provider_models_v1_openrouter_models_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2293,10 +2639,29 @@
         }
       }
     },
+    "/.well-known/skill.md": {
+      "get": {
+        "summary": "Serve Skill Md",
+        "description": "Serves SKILL.md directly from the API server for autonomous AI agents.",
+        "operationId": "serve_skill_md__well_known_skill_md_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/skill.md": {
       "get": {
         "summary": "Serve Skill Md",
-        "description": "Slouží SKILL.md přímo z API serveru pro autonomní AI agenty.",
+        "description": "Serves SKILL.md directly from the API server for autonomous AI agents.",
         "operationId": "serve_skill_md_skill_md_get",
         "responses": {
           "200": {
@@ -2315,8 +2680,65 @@
     "/SKILL.md": {
       "get": {
         "summary": "Serve Skill Md",
-        "description": "Slouží SKILL.md přímo z API serveru pro autonomní AI agenty.",
+        "description": "Serves SKILL.md directly from the API server for autonomous AI agents.",
         "operationId": "serve_skill_md_SKILL_md_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents.md": {
+      "get": {
+        "summary": "Serve Agents Md",
+        "description": "Serves AGENTS.md directly from the API server for coding AI agents.",
+        "operationId": "serve_agents_md_agents_md_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/AGENTS.md": {
+      "get": {
+        "summary": "Serve Agents Md",
+        "description": "Serves AGENTS.md directly from the API server for coding AI agents.",
+        "operationId": "serve_agents_md_AGENTS_md_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/llms.txt": {
+      "get": {
+        "summary": "Serve Llms Txt",
+        "description": "Serves llms.txt directly from the API server for LLMs and AI agents.",
+        "operationId": "serve_llms_txt__well_known_llms_txt_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2334,7 +2756,7 @@
     "/llms.txt": {
       "get": {
         "summary": "Serve Llms Txt",
-        "description": "Slouží llms.txt přímo z API serveru pro autonomní AI agenty.",
+        "description": "Serves llms.txt directly from the API server for LLMs and AI agents.",
         "operationId": "serve_llms_txt_llms_txt_get",
         "responses": {
           "200": {
@@ -2344,6 +2766,91 @@
                 "schema": {
                   "type": "string"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llms-full.txt": {
+      "get": {
+        "summary": "Serve Llms Full Txt",
+        "description": "Serves llms-full.txt directly from the API server for LLMs and AI agents.",
+        "operationId": "serve_llms_full_txt_llms_full_txt_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp.json": {
+      "get": {
+        "summary": "Serve Mcp Manifest",
+        "description": "Serves the MCP Server Discovery manifest.",
+        "operationId": "serve_mcp_manifest_mcp_json_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/mcp.json": {
+      "get": {
+        "summary": "Serve Mcp Manifest",
+        "description": "Serves the MCP Server Discovery manifest.",
+        "operationId": "serve_mcp_manifest__well_known_mcp_json_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mcp": {
+      "get": {
+        "summary": "Mcp Streamable Http Info",
+        "description": "Returns MCP Server capabilities and discovery info for GET /v1/mcp.",
+        "operationId": "mcp_streamable_http_info_v1_mcp_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Mcp Streamable Http Endpoint",
+        "description": "Streamable HTTP JSON-RPC 2.0 endpoint for Model Context Protocol (MCP) clients.",
+        "operationId": "mcp_streamable_http_endpoint_v1_mcp_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }
@@ -2654,6 +3161,48 @@
               }
             ],
             "title": "Allowed Source Types"
+          },
+          "custom_connectors": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Connectors"
+          },
+          "connectors": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectors"
+          },
+          "syntropy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syntropy"
           }
         },
         "additionalProperties": true,
@@ -2737,7 +3286,7 @@
           "message": {
             "type": "string",
             "title": "Message",
-            "default": "Tento klíč se zobrazí POUZE JEDNOU. Ihned si ho zkopírujte."
+            "default": "Tento kl\u00ed\u010d se zobraz\u00ed POUZE JEDNOU. Ihned si ho zkop\u00edrujte."
           }
         },
         "type": "object",
@@ -2765,7 +3314,7 @@
               }
             ],
             "title": "Source Reference",
-            "default": "Manuálně přidáno"
+            "default": "Manu\u00e1ln\u011b p\u0159id\u00e1no"
           },
           "flagged_for_review": {
             "anyOf": [
@@ -2866,6 +3415,131 @@
         ],
         "title": "CreateCheckoutResponse"
       },
+      "CustomConnectorConfig": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Human-readable connector name"
+          },
+          "connector_type": {
+            "type": "string",
+            "title": "Connector Type",
+            "description": "One of: 'rest_webhook', 'rest_api', 'sql_table_snapshot', 'sql_postgrest', 'agent_endpoint', 'agent_webhook', 'mcp_tool', 'graphql'",
+            "default": "rest_webhook"
+          },
+          "endpoint_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint Url",
+            "description": "HTTPS/HTTP endpoint for live retrieval"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "HTTP method: 'POST' or 'GET'",
+            "default": "POST"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Headers",
+            "description": "Optional auth/custom HTTP headers"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "What domain data this connector provides"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 250.0,
+            "title": "Timeout Ms",
+            "description": "Hard timeout in ms (max 4000ms)",
+            "default": 4000
+          },
+          "response_axioms_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Axioms Path",
+            "description": "Optional dot-path to extract array/facts from JSON response"
+          },
+          "row_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Template",
+            "description": "Optional Python format string to render dict rows into declarative axioms (e.g. 'Tier {tier} enforces max liability {max_liability_eur} EUR.')"
+          },
+          "static_rows": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Static Rows",
+            "description": "Inline SQL/JSON table rows or static facts when connector_type=='sql_table_snapshot'"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CustomConnectorConfig"
+      },
       "DebateRequest": {
         "properties": {
           "thesis": {
@@ -2938,6 +3612,29 @@
             ],
             "title": "Allowed Source Types",
             "description": "Allowed sources for research"
+          },
+          "custom_connectors": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CustomConnectorConfig"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Connectors",
+            "description": "Optional per-request custom data, table, API, or retrieval agent connectors"
           }
         },
         "type": "object",
@@ -3064,6 +3761,153 @@
         },
         "type": "object",
         "title": "PushAxiomsRequest"
+      },
+      "QueryConnectorRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Search query or entity identifier to send to the connector",
+            "default": ""
+          },
+          "thesis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thesis",
+            "description": "Optional thesis context"
+          },
+          "ingest_into_world": {
+            "type": "boolean",
+            "title": "Ingest Into World",
+            "description": "If True, extracted axioms are reconciled and persisted into the Small World",
+            "default": false
+          },
+          "on_conflict": {
+            "type": "string",
+            "title": "On Conflict",
+            "description": "Conflict policy if ingest_into_world=True",
+            "default": "flag"
+          }
+        },
+        "type": "object",
+        "title": "QueryConnectorRequest"
+      },
+      "RegisterConnectorRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Human-readable connector name"
+          },
+          "connector_type": {
+            "type": "string",
+            "title": "Connector Type",
+            "description": "One of: 'rest_webhook', 'rest_api', 'sql_table_snapshot', 'sql_postgrest', 'agent_endpoint', 'agent_webhook', 'mcp_tool', 'graphql'",
+            "default": "rest_webhook"
+          },
+          "endpoint_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endpoint Url",
+            "description": "HTTPS/HTTP endpoint for live retrieval"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "HTTP method: 'POST' or 'GET'",
+            "default": "POST"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Headers",
+            "description": "Optional auth/custom HTTP headers"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "What domain data this connector provides"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "maximum": 4000.0,
+            "minimum": 250.0,
+            "title": "Timeout Ms",
+            "description": "Hard timeout in ms (max 4000ms)",
+            "default": 4000
+          },
+          "response_axioms_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Axioms Path",
+            "description": "Optional dot-path to extract array/facts from JSON response"
+          },
+          "row_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Template",
+            "description": "Optional Python format string to render dict rows into declarative axioms (e.g. 'Tier {tier} enforces max liability {max_liability_eur} EUR.')"
+          },
+          "static_rows": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Static Rows",
+            "description": "Inline SQL/JSON table rows or static facts when connector_type=='sql_table_snapshot'"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "RegisterConnectorRequest"
       },
       "UpdateApiKeyRequest": {
         "properties": {
@@ -3319,15 +4163,5 @@
         "scheme": "bearer"
       }
     }
-  },
-  "servers": [
-    {
-      "url": "https://api.synproof.ai",
-      "description": "Synproof's Syntropy Production API"
-    },
-    {
-      "url": "https://synproof.ai",
-      "description": "Synproof's Syntropy Web & Static Discovery Host"
-    }
-  ]
+  }
 }

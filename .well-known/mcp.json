@@ -49,6 +49,7 @@
           "thesis": { "type": "string", "description": "The claim, hypothesis, or AI output to formally verify." },
           "world": { "type": "string", "description": "Optional Small World handle (e.g. '@law:civil-code-obligations', '@law:eu-gdpr-data-protection', '@medicine:clinical-pharmacology-interactions', '@physics:conservation-laws-thermo', '@finance:basel-iii-aml-compliance', '@cybersecurity:iso-27001-zero-trust')." },
           "initial_axioms": { "type": "array", "items": { "type": "string" }, "description": "Optional list of explicit ground-truth axioms." },
+          "connectors": { "type": "array", "items": { "type": "object" }, "description": "Optional inline Custom Epistemic Connectors (REST APIs, PostgREST/Supabase tables, or retrieval sub-agent webhooks) queried live during verification at SourceTier.CUSTOMER_SOT = 95." },
           "max_failures": { "type": "integer", "default": 3, "description": "Dialectical depth (1-10 failed refutation attempts required for Sceptical Exhaustion)." },
           "model_name": { "type": "string", "default": "gemini-2.5-flash", "description": "Underlying verifier LLM (e.g. 'gemini-2.5-flash', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-r1')." }
         },
@@ -101,6 +102,48 @@
           "source_reference": { "type": "string", "description": "Citation or document source identifier." }
         },
         "required": ["world_id_or_handle"]
+      }
+    },
+    {
+      "name": "syntropy_register_connector",
+      "description": "Register a persistent Custom Epistemic Connector (REST API, PostgREST/Supabase SQL table, or retrieval sub-agent webhook) onto a Small World (auto-forks if public) at SourceTier.CUSTOMER_SOT = 95.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "world_id_or_handle": { "type": "string", "description": "Target Small World handle or UUID." },
+          "name": { "type": "string", "description": "Human-readable name for the custom data source." },
+          "endpoint_url": { "type": "string", "description": "HTTPS endpoint URL (may include {query} placeholder)." },
+          "method": { "type": "string", "default": "GET", "description": "HTTP method ('GET' or 'POST')." },
+          "connector_type": { "type": "string", "default": "rest_api", "description": "Type: 'rest_api' | 'sql_postgrest' | 'agent_webhook' | 'graphql'." },
+          "headers": { "type": "object", "description": "Optional HTTP headers (e.g. Authorization, apikey)." },
+          "response_axioms_path": { "type": "string", "description": "Optional dot-separated JSON path to extract axioms or rows." },
+          "row_template": { "type": "string", "description": "Optional Python format template to convert dict rows into declarative axiom strings." }
+        },
+        "required": ["world_id_or_handle", "name", "endpoint_url"]
+      }
+    },
+    {
+      "name": "syntropy_list_connectors",
+      "description": "List all registered Custom Epistemic Connectors attached to a Small World (with secret headers redacted).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "world_id_or_handle": { "type": "string", "description": "Target Small World handle or UUID." }
+        },
+        "required": ["world_id_or_handle"]
+      }
+    },
+    {
+      "name": "syntropy_query_connector",
+      "description": "Test-query a registered Custom Epistemic Connector on a Small World and inspect the extracted atomic ground-truth axioms.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "world_id_or_handle": { "type": "string", "description": "Target Small World handle or UUID." },
+          "connector_id": { "type": "string", "description": "Connector ID returned by syntropy_register_connector or syntropy_list_connectors." },
+          "query": { "type": "string", "description": "Search query or thesis context passed to the connector." }
+        },
+        "required": ["world_id_or_handle", "connector_id", "query"]
       }
     }
   ]

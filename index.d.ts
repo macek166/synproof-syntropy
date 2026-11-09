@@ -5,10 +5,36 @@ export interface SyntropyClientOptions {
   modelName?: string;
 }
 
+export interface CustomConnectorConfig {
+  id?: string;
+  name: string;
+  connector_type?:
+    | "rest_webhook"
+    | "rest_api"
+    | "sql_table_snapshot"
+    | "sql_postgrest"
+    | "agent_endpoint"
+    | "agent_webhook"
+    | "mcp_tool"
+    | "graphql";
+  endpoint_url?: string;
+  method?: "POST" | "GET";
+  headers?: Record<string, string>;
+  description?: string;
+  timeout_ms?: number;
+  response_axioms_path?: string;
+  row_template?: string;
+  static_rows?: Array<string | Record<string, unknown>>;
+  enabled?: boolean;
+}
+
 export interface DebateParams {
   thesis: string;
   world?: string;
   initialAxioms?: string[];
+  axiomProvider?: (thesis: string) => Promise<string[] | Record<string, unknown>> | string[] | Record<string, unknown>;
+  customConnectors?: CustomConnectorConfig[];
+  connectors?: CustomConnectorConfig[];
   maxFailures?: number;
   modelName?: string;
   enableResearch?: boolean;
@@ -50,6 +76,28 @@ export declare class SyntropyClient {
         sourceReference?: string;
         onConflict?: "flag" | "replace" | "keep";
       }
+    ): Promise<Record<string, unknown>>;
+    registerConnector(
+      worldIdOrHandle: string,
+      options: {
+        name: string;
+        connectorType?: "rest_webhook" | "sql_table_snapshot" | "agent_endpoint" | "mcp_tool";
+        endpointUrl?: string;
+        method?: "POST" | "GET";
+        headers?: Record<string, string>;
+        description?: string;
+        timeoutMs?: number;
+        responseAxiomsPath?: string;
+        staticRows?: Array<string | Record<string, unknown>>;
+        enabled?: boolean;
+      }
+    ): Promise<Record<string, unknown>>;
+    listConnectors(worldIdOrHandle: string): Promise<Record<string, unknown>>;
+    deleteConnector(worldIdOrHandle: string, connectorId: string): Promise<Record<string, unknown>>;
+    queryConnector(
+      worldIdOrHandle: string,
+      connectorId: string,
+      options?: { query?: string; thesis?: string; ingestIntoWorld?: boolean; onConflict?: string }
     ): Promise<Record<string, unknown>>;
   };
   constructor(options?: SyntropyClientOptions);

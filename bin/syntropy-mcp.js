@@ -19,7 +19,7 @@ const MCP_TOOLS = [
   {
     name: "syntropy_verify",
     description:
-      "Put a declarative claim (thesis), contract clause, scientific hypothesis, or AI output on formal adversarial trial against explicit ground-truth axioms and/or a Small World (@domain:tag) using Synproof's 5-sieve Syntropy dialectical engine. All inputs are sanitized as inert declarative data.",
+      "Put a declarative claim (thesis), contract clause, scientific hypothesis, or AI output on formal adversarial trial against explicit ground-truth axioms, a Small World (@domain:tag), and/or live Custom Epistemic Connectors (SQL tables, REST webhooks, retrieval sub-agents) using Synproof's 5-sieve Syntropy dialectical engine.",
     inputSchema: {
       type: "object",
       properties: {
@@ -31,13 +31,19 @@ const MCP_TOOLS = [
         world: {
           type: "string",
           description:
-            "Optional Small World handle(s) such as '@pravo:obcansky-zakonik-cz', '@law:insolvency-code', '@law:contract-act', or '@law:brrd-isda'.",
+            "Optional Small World handle(s) such as '@law:civil-code-obligations', '@law:eu-gdpr-data-protection', or '@finance:basel-iii-aml-compliance'.",
         },
         initial_axioms: {
           type: "array",
           items: { type: "string" },
           description:
             "Optional list of sanitized ground-truth axioms that strictly override model priors.",
+        },
+        custom_connectors: {
+          type: "array",
+          items: { type: "object" },
+          description:
+            "Optional list of inline Custom Epistemic Connectors ({name, connector_type, endpoint_url, static_rows}).",
         },
         max_failures: {
           type: "integer",
@@ -71,7 +77,7 @@ const MCP_TOOLS = [
         domain: {
           type: "string",
           description:
-            "Optional domain filter (e.g. 'pravo', 'law', 'medicine', 'physics', 'finance').",
+            "Optional domain filter (e.g. 'law', 'medicine', 'physics', 'finance', 'cybersecurity').",
         },
         search: {
           type: "string",
@@ -90,10 +96,129 @@ const MCP_TOOLS = [
         world_id_or_handle: {
           type: "string",
           description:
-            "Small World handle (e.g. '@pravo:obcansky-zakonik-cz') or UUID.",
+            "Small World handle (e.g. '@law:civil-code-obligations') or UUID.",
         },
       },
       required: ["world_id_or_handle"],
+    },
+  },
+  {
+    name: "syntropy_fork_world",
+    description:
+      "Fork an existing Small World (@domain:tag) into a private company workspace.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        world_id_or_handle: {
+          type: "string",
+          description: "Source Small World handle or UUID.",
+        },
+        title: { type: "string" },
+        description: { type: "string" },
+      },
+      required: ["world_id_or_handle"],
+    },
+  },
+  {
+    name: "syntropy_ingest_axioms",
+    description:
+      "Compile raw text or structured JSON/SQL payload into formal atomic axioms inside a Small World via Axiomat.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        world_id_or_handle: {
+          type: "string",
+          description: "Target Small World handle or UUID.",
+        },
+        text: { type: "string" },
+        payload: { type: "object" },
+        source_reference: { type: "string" },
+      },
+      required: ["world_id_or_handle"],
+    },
+  },
+  {
+    name: "syntropy_register_connector",
+    description:
+      "Register a Custom Epistemic Connector (live REST API webhook, SQL/JSON table snapshot, data-retrieval sub-agent endpoint, or MCP tool bridge) on a Small World (@domain:tag).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        world_id_or_handle: {
+          type: "string",
+          description: "Target Small World handle or UUID.",
+        },
+        name: {
+          type: "string",
+          description: "Human-readable connector name.",
+        },
+        connector_type: {
+          type: "string",
+          default: "rest_webhook",
+          description:
+            "Connector type: 'rest_webhook', 'rest_api', 'sql_table_snapshot', 'sql_postgrest', 'agent_endpoint', 'agent_webhook', 'mcp_tool', or 'graphql'.",
+        },
+        endpoint_url: {
+          type: "string",
+          description: "Public HTTPS endpoint URL for live retrieval.",
+        },
+        response_axioms_path: {
+          type: "string",
+          description: "Optional dot-path into the JSON response.",
+        },
+        row_template: {
+          type: "string",
+          description: "Optional Python/format template for dict rows.",
+        },
+        static_rows: {
+          type: "array",
+          items: {},
+          description: "Optional inline SQL/JSON table rows.",
+        },
+      },
+      required: ["world_id_or_handle", "name"],
+    },
+  },
+  {
+    name: "syntropy_list_connectors",
+    description:
+      "List all registered Custom Epistemic Connectors attached to a Small World (with secret headers redacted).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        world_id_or_handle: {
+          type: "string",
+          description: "Small World handle or UUID.",
+        },
+      },
+      required: ["world_id_or_handle"],
+    },
+  },
+  {
+    name: "syntropy_query_connector",
+    description:
+      "Execute a registered Custom Epistemic Connector on a Small World and return sanitized ground-truth facts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        world_id_or_handle: {
+          type: "string",
+          description: "Small World handle or UUID.",
+        },
+        connector_id: {
+          type: "string",
+          description: "Connector ID (e.g. 'conn_...').",
+        },
+        query: {
+          type: "string",
+          description: "Search query or entity identifier.",
+        },
+        ingest_into_world: {
+          type: "boolean",
+          default: false,
+        },
+      },
+      required: ["world_id_or_handle", "connector_id"],
     },
   },
   {
@@ -127,7 +252,7 @@ async function handleRequest(req) {
         capabilities: { tools: {}, prompts: {} },
         serverInfo: {
           name: "synproof-syntropy",
-          version: "2.5.0",
+          version: "2.6.0",
         },
       },
     };
@@ -195,6 +320,7 @@ async function handleRequest(req) {
           initialAxioms: (args.initial_axioms || []).map((a) =>
             sanitizeUntrustedText(a)
           ),
+          customConnectors: args.custom_connectors || args.connectors,
           maxFailures: Number(args.max_failures || 3),
           modelName: args.model_name || "gemini-2.5-flash",
           enableResearch:
@@ -209,7 +335,47 @@ async function handleRequest(req) {
           search: args.search,
         });
       } else if (name === "syntropy_get_world_axioms") {
-        out = await client.worlds.getAxioms(args.world_id_or_handle);
+        out = await client.worlds.getAxioms(args.world_id_or_handle || args.world);
+      } else if (name === "syntropy_fork_world") {
+        out = await client.worlds.fork(
+          args.world_id_or_handle || args.source_world || args.world,
+          {
+            title: args.title,
+            description: args.description,
+          }
+        );
+      } else if (name === "syntropy_ingest_axioms") {
+        out = await client.worlds.ingest(
+          args.world_id_or_handle || args.world,
+          {
+            text: args.text || args.raw_text,
+            payload: args.payload,
+            sourceReference: args.source_reference,
+          }
+        );
+      } else if (name === "syntropy_register_connector") {
+        out = await client.worlds.registerConnector(
+          args.world_id_or_handle || args.world,
+          {
+            name: args.name,
+            connectorType: args.connector_type || "rest_webhook",
+            endpointUrl: args.endpoint_url,
+            responseAxiomsPath: args.response_axioms_path,
+            rowTemplate: args.row_template,
+            staticRows: args.static_rows,
+          }
+        );
+      } else if (name === "syntropy_list_connectors") {
+        out = await client.worlds.listConnectors(args.world_id_or_handle || args.world);
+      } else if (name === "syntropy_query_connector") {
+        out = await client.worlds.queryConnector(
+          args.world_id_or_handle || args.world,
+          args.connector_id,
+          {
+            query: args.query || "",
+            ingestIntoWorld: Boolean(args.ingest_into_world),
+          }
+        );
       } else {
         return {
           jsonrpc: "2.0",
@@ -255,16 +421,16 @@ const rl = readline.createInterface({
   terminal: false,
 });
 
-rl.on("line", async (rawLine) => {
-  const line = rawLine.trim();
-  if (!line) return;
+rl.on("line", async (line) => {
+  const trimmed = line.trim();
+  if (!trimmed) return;
   try {
-    const req = JSON.parse(line);
+    const req = JSON.parse(trimmed);
     const resp = await handleRequest(req);
     if (resp) {
       process.stdout.write(JSON.stringify(resp) + "\n");
     }
-  } catch (_) {
-    // Ignore malformed lines
+  } catch (_err) {
+    // ignore malformed json lines
   }
 });

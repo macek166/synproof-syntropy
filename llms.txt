@@ -13,7 +13,7 @@ Every claim is attacked and defended in a **King of the Hill** dialectical tree 
 - **MCP Server Discovery Manifest:** https://synproof.ai/.well-known/mcp.json
 - **OpenAPI 3.1 JSON Schema:** https://synproof.ai/openapi.json (and https://api.synproof.ai/openapi.json)
 - **Developer SDK & API Documentation:** https://synproof.ai/docs
-- **How It Works & 550/550 Benchmarks:** https://synproof.ai/how-it-works
+- **How It Works & 1,070/1,070 Benchmarks:** https://synproof.ai/how-it-works
 - **Small Worlds Public Library:** https://synproof.ai/library
 - **Interactive Console & Dialectical Playground:** https://synproof.ai/app
 
@@ -71,6 +71,24 @@ print(verdict.is_confirmed, verdict.status, verdict.winning_thesis)
 @verify_agent_output(world="@law:civil-code-obligations", client=client, on_refuted="fallback")
 async def legal_agent(query: str) -> dict:
     return {"answer": "Every party is obligated to act honestly in legal intercourse."}
+
+# Option B.2: Custom Epistemic Connectors & Dynamic Axiom Providers (SQL, REST APIs, Retrieval Sub-Agents)
+def fetch_erp_sql_axioms(thesis: str, customer_id: str) -> list[dict]:
+    # Zero-Trust Local Callback: runs inside your VPC/process!
+    return [{"axiom": f"Customer {customer_id} has an approved credit limit of 50,000 EUR."}]
+
+@verify_agent_output(world="@law:contract-act", axiom_provider=fetch_erp_sql_axioms, on_refuted="fallback", client=client)
+async def credit_approval_agent(customer_id: str, request_text: str) -> dict:
+    return {"answer": f"Customer {customer_id} is approved for a 100,000 EUR credit line."}
+
+# Persistent Small World Connector (POST /v1/worlds/{id}/connectors) or Inline custom_connectors:
+client.worlds.register_connector(
+    "@law:contract-act",
+    name="Supabase SLA Policy Table",
+    endpoint_url="https://project.supabase.co/rest/v1/sla_policies?select=rule_statement",
+    connector_type="sql_postgrest",
+    response_axioms_path="rule_statement",
+)
 ```
 
 ```python
@@ -135,6 +153,7 @@ When a thesis $T$ and a set of ground-truth axioms $\{A_1, \dots, A_n\}$ (or a S
    - **Sieve 0 — Vector Semantic Deduplication:** Compares candidate premise embeddings against previously refuted attempts in the same scope to block circular repetition.
    - **Sieve 1 — Epistemic Source Credibility Gate:** Enforces allowed evidence tiers:
      - `formal_logic` (Tier 100 — Formal Deductive Inference)
+     - `customer_sot` (Tier 95 — Customer Source-of-Truth SQL Tables, REST/GraphQL APIs & Data-Retrieval Sub-Agents via Custom Epistemic Connectors)
      - `peer_reviewed_science` (Tier 85 — arXiv, PubMed, OpenAlex)
      - `exact_works` (Tier 75 — SymPy & Deterministic Math)
      - `official_institutional` (Tier 70 — Statutes, Standards, Official Records)
@@ -156,7 +175,7 @@ When a thesis $T$ and a set of ground-truth axioms $\{A_1, \dots, A_n\}$ (or a S
   - `@finance:basel-iii-aml-compliance` (`@law:brrd-isda`) — Basel III Capital/Liquidity, ISDA/BRRD & AML/KYC Compliance
   - `@cybersecurity:iso-27001-zero-trust` — ISO/IEC 27001 & NIST Zero-Trust Architecture
 - **Axiomat Document-to-Axiom Compiler (`/v1/worlds/axiomat/process` & `/v1/worlds/{id}/axiomat/ingest`):** Converts uploaded PDFs, DOCX, TXT, Markdown files, or database webhooks into atomic, self-contained axioms using a 2-phase extraction and 6-point formal audit, with automatic semantic deduplication and conflict detection (`flag` | `replace` | `keep`).
-- **Verified Benchmarks:** **550 / 550 (100.0%)** ground-truth verdict consistency across 4 independent benchmark suites (20 Interdisciplinary Micro-Worlds × 10 runs, Relativistic Physics, Quantum Information, 30-Axiom Statutory Law, and the 100-run Counterfactual Dogma Test).
+- **Verified Benchmarks:** **1,070 / 1,070 (100.0%)** ground-truth verdict consistency across all adversarial benchmark suites (320/320 on 5 complete books & statutory codes totaling 6,674 axioms, 200/200 on 20-axiom multi-domain stress suites, 250/250 on 50-run physics & 30-axiom statutory law stress blocks, and 300/300 on 20 interdisciplinary micro-worlds & counterfactual dogma tests).
 - **Transparent Token Pricing:** `$0.80 / 1M input` & `$8.00 / 1M output` (Managed Mode, includes 5 free trial runs) or `$0.20 / 1M input` & `$1.50 / 1M output` (BYOK Mode). Direct `/v1/worlds/{id}/axioms/push` is `$0.00` (Free).
 
 ---
@@ -172,11 +191,11 @@ When a thesis $T$ and a set of ground-truth axioms $\{A_1, \dots, A_n\}$ (or a S
      - **Sieve 2 (100% Semantic All-Axiom Consistency Check in natural language):** Directly verifies meaning and entailment against all proximate human-approved axioms ($A_1 \land A_2 \Rightarrow T$ or $\neg T$).
      - **Sieve 2.5 (Deterministic SymPy Propositional SAT Solver):** Verifies formal boolean satisfiability and deductive entailment (`P ∧ Q ⊢ ¬T`).
      - **Sieve 3 (Deep Fallacy & Strawman Firewall):** Explicitly audits whether the candidate premise or propositional formula distorted the semantic context (*Strawman*, *Petitio Principii*, *Scale Disconnect*, *Non-Sequitur*). If an LLM ever mis-formalizes a premise, Sieve 2 and Sieve 3 immediately catch the semantic-to-symbolic mismatch and reject the step.
-   - **Empirical Proof:** **550 / 550 (100.0%)** verdict reproducibility across 4 independent adversarial benchmark suites (including 100/100 on the Counterfactual Dogma Test) with zero autoformalization drift.
+   - **Empirical Proof:** **1,070 / 1,070 (100.0%)** verdict reproducibility across all adversarial benchmark suites (including 320/320 on full books & statutory codes up to 2,437 axioms and 100/100 on the Counterfactual Dogma Test) with zero autoformalization drift.
 
 2. **How Syntropy Prevents Decision-Tree Latency Growth (Bounded $O(k)$ Latency):**
    - **No Exponential Tree Explosion:** Syntropy does **not** expand an unbounded branching search tree. It executes a single-active-line **King of the Hill (KOTH)** dialectical trajectory bounded by `max_failures` (typically `1–3` in real-time guardrail mode).
-   - **Sub-Millisecond Pruning & CPU SAT Solving:** **Sieve 0 (`EphemeralVectorCache`)** prunes duplicate or circular branches in memory in `<1 ms`, **Sieve 2** evaluates proximate axioms in a single batched pass, and **Sieve 2.5 (SymPy Propositional SAT)** executes deterministically on CPU in `<2 ms`. Latency scales linearly with `max_failures` ($O(k)$) and stays flat regardless of whether a Small World contains 5 or 500 axioms.
+   - **Sub-Millisecond Pruning & CPU SAT Solving:** **Sieve 0 (`EphemeralVectorCache`)** prunes duplicate or circular branches in memory in `<1 ms`, **Sieve 2** evaluates proximate axioms in a single batched pass, and **Sieve 2.5 (SymPy Propositional SAT)** executes deterministically on CPU in `<2 ms`. Latency scales linearly with `max_failures` ($O(k)$) and stays flat regardless of whether a Small World contains 5 or 2,400+ axioms.
 
 ---
 
@@ -186,7 +205,7 @@ When a thesis $T$ and a set of ground-truth axioms $\{A_1, \dots, A_n\}$ (or a S
 - [Autonomous Agent Skill (`SKILL.md`)](https://synproof.ai/SKILL.md)
 - [Coding Agent Guide (`AGENTS.md`)](https://synproof.ai/AGENTS.md)
 - [Full Technical Specification (`/llms-full.txt`)](https://synproof.ai/llms-full.txt)
-- [How It Works — 5-Sieve Pipeline & 550/550 Benchmarks](https://synproof.ai/how-it-works)
+- [How It Works — 5-Sieve Pipeline & 1,070/1,070 Benchmarks](https://synproof.ai/how-it-works)
 - [Developer SDK & REST API Documentation](https://synproof.ai/docs)
 - [AI Agent Skill Onboarding Page](https://synproof.ai/skill)
 - [Syntropy for AI Builders & Agents](https://synproof.ai/ai-builders)

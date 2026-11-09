@@ -2,18 +2,46 @@ import os
 import re
 import time
 import json
+import inspect
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Union
 import httpx
 import websockets
-from .models import DebateEvent, SourceType, SourceTier
+from .models import DebateEvent, SourceType, SourceTier, CustomConnectorConfig
 
 _INJECTION_PATTERNS = re.compile(
     r"(ignore\s+(all\s+)?(previous|prior|above)\s+instructions|"
     r"system\s*prompt\s*:|"
     r"<\s*/?\s*(system|instruction|tool_call|function_call)\s*>)",
     re.IGNORECASE,
+)
+
+_COLLECTION_UNWRAP_KEYS = (
+    "axioms",
+    "rules",
+    "facts",
+    "statements",
+    "rows",
+    "data",
+    "results",
+    "items",
+    "records",
+    "content",
+)
+
+_ITEM_TEXT_KEYS = (
+    "axiom",
+    "statement",
+    "axiom_text",
+    "rule",
+    "fact",
+    "text",
+    "content",
+    "claim",
+    "description",
+    "answer",
+    "output",
 )
 
 
@@ -26,6 +54,148 @@ def sanitize_untrusted_text(raw: Any, max_length: int = 8000) -> str:
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
     text = _INJECTION_PATTERNS.sub("[REDACTED_DIRECTIVE]", text)
     return text.strip()[:max_length]
+
+
+def _extract_axioms_from_provider_result(data: Any, max_items: int = 50) -> List[str]:
+    """
+    Flexibly extracts and sanitizes declarative ground-truth strings from local `axiom_provider`
+    return values (lists of strings, SQL row dicts, or JSON objects).
+    """
+    target = data
+    for _ in range(3):
+        if isinstance(target, dict):
+            matched_key = next((k for k in _COLLECTION_UNWRAP_KEYS if k in target and target[k] is not None), None)
+            if matched_key is not None:
+                target = target[matched_key]
+            else:
+                break
+        else:
+            break
+
+    raw_items: List[Any] = []
+    if isinstance(target, (list, tuple, set)):
+        raw_items = list(target)[:max_items]
+    elif target is not None:
+        raw_items = [target]
+
+    extracted: List[str] = []
+    seen = set()
+    for item in raw_items:
+        candidate = ""
+        if isinstance(item, str):
+            candidate = item
+        elif isinstance(item, dict):
+            text_key = next(
+                (k for k in _ITEM_TEXT_KEYS if k in item and isinstance(item[k], str) and item[k].strip()),
+                None,
+            )
+            if text_key is not None:
+                candidate = item[text_key]
+            else:
+                kv_pairs = [
+                    f"{k}: {v}"
+                    for k, v in item.items()
+                    if v is not None and not str(k).startswith("_") and str(v).strip() != ""
+                ]
+                if kv_pairs:
+                    candidate = ", ".join(kv_pairs)
+        elif item is not None:
+            candidate = str(item)
+
+        clean = sanitize_untrusted_text(candidate, max_length=2000)
+        if clean and clean not in seen:
+            seen.add(clean)
+            extracted.append(clean)
+            if len(extracted) >= max_items:
+                break
+
+    return extracted
+
+
+def _invoke_provider_with_flexible_arity(
+    provider_fn: Callable,
+    thesis: str,
+    *agent_args: Any,
+    **agent_kwargs: Any,
+) -> Any:
+    """Invokes an `axiom_provider` callable supporting `(thesis, *args, **kwargs)`, `(thesis)`, or `()`."""
+    try:
+        sig = inspect.signature(provider_fn)
+        params = list(sig.parameters.values())
+        has_var_positional = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params)
+        has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params)
+        positional_params = [
+            p
+            for p in params
+            if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+
+        if has_var_positional or has_var_keyword or len(positional_params) > 1:
+            return provider_fn(thesis, *agent_args, **agent_kwargs)
+        if len(positional_params) == 1:
+            return provider_fn(thesis)
+        return provider_fn()
+    except TypeError:
+        try:
+            return provider_fn(thesis)
+        except TypeError:
+            return provider_fn()
+
+
+def _resolve_axiom_providers_sync(
+    axiom_provider: Optional[Union[Callable, List[Callable]]],
+    thesis: str,
+    *agent_args: Any,
+    **agent_kwargs: Any,
+) -> List[str]:
+    if not axiom_provider:
+        return []
+    providers = axiom_provider if isinstance(axiom_provider, (list, tuple)) else [axiom_provider]
+    out: List[str] = []
+    for fn in providers:
+        if not callable(fn):
+            continue
+        res = _invoke_provider_with_flexible_arity(fn, thesis, *agent_args, **agent_kwargs)
+        if inspect.isawaitable(res):
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            try:
+                if loop is not None and loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        res = pool.submit(asyncio.run, res).result(timeout=10.0)
+                else:
+                    res = asyncio.run(res)
+            except Exception:
+                res = []
+        for ax in _extract_axioms_from_provider_result(res):
+            if ax not in out:
+                out.append(ax)
+    return out
+
+
+async def _resolve_axiom_providers_async(
+    axiom_provider: Optional[Union[Callable, List[Callable]]],
+    thesis: str,
+    *agent_args: Any,
+    **agent_kwargs: Any,
+) -> List[str]:
+    if not axiom_provider:
+        return []
+    providers = axiom_provider if isinstance(axiom_provider, (list, tuple)) else [axiom_provider]
+    out: List[str] = []
+    for fn in providers:
+        if not callable(fn):
+            continue
+        res = _invoke_provider_with_flexible_arity(fn, thesis, *agent_args, **agent_kwargs)
+        if inspect.isawaitable(res):
+            res = await res
+        for ax in _extract_axioms_from_provider_result(res):
+            if ax not in out:
+                out.append(ax)
+    return out
 
 
 class TelemetryDict(dict):
@@ -100,7 +270,7 @@ class SyntropyGuardrailError(Exception):
 
 
 class WorldsClient:
-    """Sub-client for managing Small Worlds, forks, and live Axiomat ingestion."""
+    """Sub-client for managing Small Worlds, forks, live Axiomat ingestion, and Custom Epistemic Connectors."""
 
     def __init__(self, parent: "SyntropyClient"):
         self._parent = parent
@@ -165,11 +335,12 @@ class WorldsClient:
         world_id_or_handle: str,
         text: Optional[str] = None,
         payload: Optional[Dict[str, Any]] = None,
+        file_path: Optional[str] = None,
         source_reference: Optional[str] = None,
         on_conflict: str = "flag",
     ) -> Dict[str, Any]:
         """
-        Extracts atomic axioms via Axiomat from sanitized declarative text or a JSON dictionary,
+        Extracts atomic axioms via Axiomat from sanitized declarative text, a JSON dictionary, or a file,
         and synchronizes them into the target Small World with semantic deduplication.
         """
         data: Dict[str, Any] = {"on_conflict": on_conflict}
@@ -180,6 +351,15 @@ class WorldsClient:
         if payload is not None:
             data["payload_json"] = sanitize_untrusted_text(json.dumps(payload, ensure_ascii=False), max_length=16000)
 
+        if file_path:
+            with open(file_path, "rb") as f:
+                files = {"file": (os.path.basename(file_path), f)}
+                return self._parent._request(
+                    "POST",
+                    f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
+                    data=data,
+                    files=files,
+                )
         return self._parent._request(
             "POST",
             f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
@@ -191,6 +371,7 @@ class WorldsClient:
         world_id_or_handle: str,
         text: Optional[str] = None,
         payload: Optional[Dict[str, Any]] = None,
+        file_path: Optional[str] = None,
         source_reference: Optional[str] = None,
         on_conflict: str = "flag",
     ) -> Dict[str, Any]:
@@ -202,6 +383,16 @@ class WorldsClient:
         if payload is not None:
             data["payload_json"] = sanitize_untrusted_text(json.dumps(payload, ensure_ascii=False), max_length=16000)
 
+        if file_path:
+            with open(file_path, "rb") as f:
+                content = f.read()
+            files = {"file": (os.path.basename(file_path), content)}
+            return await self._parent._arequest(
+                "POST",
+                f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
+                data=data,
+                files=files,
+            )
         return await self._parent._arequest(
             "POST",
             f"/v1/worlds/{world_id_or_handle}/axiomat/ingest",
@@ -246,6 +437,141 @@ class WorldsClient:
     async def aget_axioms(self, world_id_or_handle: str) -> Dict[str, Any]:
         return await self._parent._arequest("GET", f"/v1/worlds/{world_id_or_handle}/axioms")
 
+    # ------------------------------------------------------------------
+    # Custom Epistemic Connectors (Pattern 2: Small World Connectors)
+    # ------------------------------------------------------------------
+
+    def register_connector(
+        self,
+        world_id_or_handle: str,
+        name: str,
+        connector_type: str = "rest_webhook",
+        endpoint_url: Optional[str] = None,
+        method: str = "POST",
+        headers: Optional[Dict[str, str]] = None,
+        description: Optional[str] = None,
+        timeout_ms: int = 4000,
+        response_axioms_path: Optional[str] = None,
+        row_template: Optional[str] = None,
+        static_rows: Optional[List[Any]] = None,
+        enabled: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Registers a Custom Epistemic Connector ('rest_webhook', 'rest_api', 'sql_table_snapshot',
+        'sql_postgrest', 'agent_endpoint', 'agent_webhook', 'mcp_tool', or 'graphql') on a Small World.
+        """
+        body: Dict[str, Any] = {
+            "name": name,
+            "connector_type": connector_type,
+            "method": method,
+            "headers": headers or {},
+            "timeout_ms": timeout_ms,
+            "enabled": enabled,
+        }
+        if endpoint_url is not None:
+            body["endpoint_url"] = endpoint_url
+        if description is not None:
+            body["description"] = description
+        if response_axioms_path is not None:
+            body["response_axioms_path"] = response_axioms_path
+        if row_template is not None:
+            body["row_template"] = row_template
+        if static_rows is not None:
+            body["static_rows"] = static_rows
+        return self._parent._request("POST", f"/v1/worlds/{world_id_or_handle}/connectors", json=body)
+
+    async def aregister_connector(
+        self,
+        world_id_or_handle: str,
+        name: str,
+        connector_type: str = "rest_webhook",
+        endpoint_url: Optional[str] = None,
+        method: str = "POST",
+        headers: Optional[Dict[str, str]] = None,
+        description: Optional[str] = None,
+        timeout_ms: int = 4000,
+        response_axioms_path: Optional[str] = None,
+        row_template: Optional[str] = None,
+        static_rows: Optional[List[Any]] = None,
+        enabled: bool = True,
+    ) -> Dict[str, Any]:
+        body: Dict[str, Any] = {
+            "name": name,
+            "connector_type": connector_type,
+            "method": method,
+            "headers": headers or {},
+            "timeout_ms": timeout_ms,
+            "enabled": enabled,
+        }
+        if endpoint_url is not None:
+            body["endpoint_url"] = endpoint_url
+        if description is not None:
+            body["description"] = description
+        if response_axioms_path is not None:
+            body["response_axioms_path"] = response_axioms_path
+        if row_template is not None:
+            body["row_template"] = row_template
+        if static_rows is not None:
+            body["static_rows"] = static_rows
+        return await self._parent._arequest("POST", f"/v1/worlds/{world_id_or_handle}/connectors", json=body)
+
+    def list_connectors(self, world_id_or_handle: str) -> Dict[str, Any]:
+        """Lists all registered Custom Epistemic Connectors on a Small World (secrets redacted)."""
+        return self._parent._request("GET", f"/v1/worlds/{world_id_or_handle}/connectors")
+
+    async def alist_connectors(self, world_id_or_handle: str) -> Dict[str, Any]:
+        return await self._parent._arequest("GET", f"/v1/worlds/{world_id_or_handle}/connectors")
+
+    def delete_connector(self, world_id_or_handle: str, connector_id: str) -> Dict[str, Any]:
+        """Deletes a registered Custom Epistemic Connector from a Small World."""
+        return self._parent._request("DELETE", f"/v1/worlds/{world_id_or_handle}/connectors/{connector_id}")
+
+    async def adelete_connector(self, world_id_or_handle: str, connector_id: str) -> Dict[str, Any]:
+        return await self._parent._arequest("DELETE", f"/v1/worlds/{world_id_or_handle}/connectors/{connector_id}")
+
+    def query_connector(
+        self,
+        world_id_or_handle: str,
+        connector_id: str,
+        query: str = "",
+        thesis: Optional[str] = None,
+        ingest_into_world: bool = False,
+        on_conflict: str = "flag",
+    ) -> Dict[str, Any]:
+        """Executes a registered Custom Epistemic Connector on demand and returns sanitized ground-truth axioms."""
+        body: Dict[str, Any] = {
+            "query": query,
+            "thesis": thesis,
+            "ingest_into_world": ingest_into_world,
+            "on_conflict": on_conflict,
+        }
+        return self._parent._request(
+            "POST",
+            f"/v1/worlds/{world_id_or_handle}/connectors/{connector_id}/query",
+            json=body,
+        )
+
+    async def aquery_connector(
+        self,
+        world_id_or_handle: str,
+        connector_id: str,
+        query: str = "",
+        thesis: Optional[str] = None,
+        ingest_into_world: bool = False,
+        on_conflict: str = "flag",
+    ) -> Dict[str, Any]:
+        body: Dict[str, Any] = {
+            "query": query,
+            "thesis": thesis,
+            "ingest_into_world": ingest_into_world,
+            "on_conflict": on_conflict,
+        }
+        return await self._parent._arequest(
+            "POST",
+            f"/v1/worlds/{world_id_or_handle}/connectors/{connector_id}/query",
+            json=body,
+        )
+
 
 class _DebateEndpoint:
     """Callable sub-client supporting both `client.debate(...)` and `client.debate.verify(...)`."""
@@ -266,7 +592,7 @@ class _DebateEndpoint:
 class SyntropyClient:
     """
     Official Python SDK Client for the Syntropy AI Epistemic Engine & Small Worlds API
-    by Synproof (Robert Macků). Supports both synchronous, asynchronous, and WebSocket workflows.
+    by Synproof (Robert Macků). Supports synchronous, asynchronous, and WebSocket workflows.
     """
 
     def __init__(
@@ -288,7 +614,16 @@ class SyntropyClient:
         self.api_key = api_key or os.environ.get("SYNTROPY_API_KEY", "")
         self.base_url = (base_url or os.environ.get("SYNTROPY_BASE_URL") or "https://api.synproof.ai").rstrip("/")
         self.ws_url = self.base_url.replace("http://", "ws://").replace("https://", "wss://")
-        self.llm_api_key = llm_api_key or byok_key or gemini_api_key or ""
+        self.llm_api_key = (
+            llm_api_key
+            or byok_key
+            or gemini_api_key
+            or os.environ.get("SYNTROPY_LLM_API_KEY")
+            or os.environ.get("OPENROUTER_API_KEY")
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+            or ""
+        )
         self.gemini_api_key = gemini_api_key or self.llm_api_key or ""
         self.typesafe_api_key = typesafe_api_key
         self.use_academic_search = use_academic_search
@@ -310,7 +645,6 @@ class SyntropyClient:
             headers["X-Syntropy-API-Key"] = self.api_key
             headers["Authorization"] = f"Bearer {self.api_key}"
         elif self.llm_api_key:
-            # Zero-friction BYOK mode: authenticate directly with the user's Gemini or OpenRouter key
             headers["X-API-Key"] = self.llm_api_key
             headers["Authorization"] = f"Bearer {self.llm_api_key}"
         if self.llm_api_key:
@@ -364,6 +698,9 @@ class SyntropyClient:
         thesis: str,
         world: Optional[str] = None,
         initial_axioms: Optional[List[str]] = None,
+        axiom_provider: Optional[Union[Callable, List[Callable]]] = None,
+        custom_connectors: Optional[List[Union[CustomConnectorConfig, Dict[str, Any]]]] = None,
+        connectors: Optional[List[Union[CustomConnectorConfig, Dict[str, Any]]]] = None,
         max_failures: int = 3,
         enable_research: bool = True,
         model_name: Optional[str] = None,
@@ -374,13 +711,20 @@ class SyntropyClient:
         max_wait_seconds: float = 180.0,
     ) -> Union[DebateVerdict, Dict[str, Any]]:
         """
-        Starts an epistemic JEV debate to verify `thesis` against `world` and/or `initial_axioms`.
+        Starts an epistemic JEV debate to verify `thesis` against `world`, `initial_axioms`,
+        local `axiom_provider` callbacks, and/or live `custom_connectors`.
         When `wait=True` (default), polls until completion and returns a `DebateVerdict`.
         """
         effective_model = model_name or self.model_name
         provider = self._infer_provider(effective_model, llm_provider or self.default_provider)
         safe_thesis = sanitize_untrusted_text(thesis)
         safe_axioms = [sanitize_untrusted_text(a) for a in (initial_axioms or [])]
+
+        if axiom_provider is not None:
+            for dyn_ax in _resolve_axiom_providers_sync(axiom_provider, safe_thesis):
+                if dyn_ax not in safe_axioms:
+                    safe_axioms.append(dyn_ax)
+
         payload: Dict[str, Any] = {
             "thesis": safe_thesis,
             "initial_axioms": safe_axioms,
@@ -394,6 +738,14 @@ class SyntropyClient:
             payload["world"] = effective_world
         if allowed_source_types is not None:
             payload["allowed_source_types"] = allowed_source_types
+
+        raw_conns = custom_connectors if custom_connectors is not None else connectors
+        if raw_conns:
+            payload["custom_connectors"] = [
+                (c.model_dump() if hasattr(c, "model_dump") else dict(c))
+                for c in raw_conns
+                if c
+            ]
 
         start_res = self._request("POST", "/v1/debate", json=payload)
         job_id = start_res["job_id"]
@@ -417,6 +769,9 @@ class SyntropyClient:
         thesis: str,
         world: Optional[str] = None,
         initial_axioms: Optional[List[str]] = None,
+        axiom_provider: Optional[Union[Callable, List[Callable]]] = None,
+        custom_connectors: Optional[List[Union[CustomConnectorConfig, Dict[str, Any]]]] = None,
+        connectors: Optional[List[Union[CustomConnectorConfig, Dict[str, Any]]]] = None,
         max_failures: int = 3,
         enable_research: bool = True,
         model_name: Optional[str] = None,
@@ -430,6 +785,12 @@ class SyntropyClient:
         provider = self._infer_provider(effective_model, llm_provider or self.default_provider)
         safe_thesis = sanitize_untrusted_text(thesis)
         safe_axioms = [sanitize_untrusted_text(a) for a in (initial_axioms or [])]
+
+        if axiom_provider is not None:
+            for dyn_ax in await _resolve_axiom_providers_async(axiom_provider, safe_thesis):
+                if dyn_ax not in safe_axioms:
+                    safe_axioms.append(dyn_ax)
+
         payload: Dict[str, Any] = {
             "thesis": safe_thesis,
             "initial_axioms": safe_axioms,
@@ -443,6 +804,14 @@ class SyntropyClient:
             payload["world"] = effective_world
         if allowed_source_types is not None:
             payload["allowed_source_types"] = allowed_source_types
+
+        raw_conns = custom_connectors if custom_connectors is not None else connectors
+        if raw_conns:
+            payload["custom_connectors"] = [
+                (c.model_dump() if hasattr(c, "model_dump") else dict(c))
+                for c in raw_conns
+                if c
+            ]
 
         start_res = await self._arequest("POST", "/v1/debate", json=payload)
         job_id = start_res["job_id"]
@@ -472,19 +841,28 @@ class SyntropyClient:
         thesis: str,
         max_failures: int = 5,
         initial_axioms: Optional[List[str]] = None,
+        axiom_provider: Optional[Union[Callable, List[Callable]]] = None,
+        custom_connectors: Optional[List[Union[CustomConnectorConfig, Dict[str, Any]]]] = None,
         allowed_source_types: Optional[List[str]] = None,
         world: Optional[str] = None,
     ) -> AsyncGenerator[DebateEvent, None]:
         """Streams real-time debate graph events over WebSockets (`/v1/debate/ws`)."""
         ws_endpoint = f"{self.ws_url}/v1/debate/ws"
         default_sources = [
+            SourceType.CUSTOMER_SOT.value,
             SourceType.PEER_REVIEWED_SCIENCE.value,
             SourceType.EXACT_WORKS.value,
             SourceType.WIKIPEDIA.value,
             SourceType.FORMAL_LOGICAL.value,
             SourceType.COMMON_SENSE.value,
         ]
-        payload = {
+        safe_axioms = [sanitize_untrusted_text(a) for a in (initial_axioms or [])]
+        if axiom_provider is not None:
+            for dyn_ax in await _resolve_axiom_providers_async(axiom_provider, thesis):
+                if dyn_ax not in safe_axioms:
+                    safe_axioms.append(dyn_ax)
+
+        payload: Dict[str, Any] = {
             "thesis": thesis,
             "max_failures": max_failures,
             "api_key": self.api_key or self.llm_api_key,
@@ -493,9 +871,15 @@ class SyntropyClient:
             "enable_research": self.use_academic_search,
             "model_name": self.model_name,
             "allowed_source_types": allowed_source_types or default_sources,
-            "initial_axioms": initial_axioms or [],
+            "initial_axioms": safe_axioms,
             "world": world or self.world_id,
         }
+        if custom_connectors:
+            payload["custom_connectors"] = [
+                (c.model_dump() if hasattr(c, "model_dump") else dict(c))
+                for c in custom_connectors
+                if c
+            ]
         async with websockets.connect(ws_endpoint) as websocket:
             await websocket.send(json.dumps(payload))
             while True:
