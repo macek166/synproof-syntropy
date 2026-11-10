@@ -1,5 +1,5 @@
 ---
-name: syntropy
+name: synproof-syntropy
 description: >
   Official interactive implementation and verification skill for Synproof's Syntropy
   (https://synproof.ai) — the deterministic 5-sieve dialectical verification engine
@@ -52,7 +52,7 @@ When a developer asks to **implement, connect, or use Syntropy in their project*
 
 ### Question 1: Ground-Truth Small World (`world` / `initial_axioms`)
 Ask the user which verified Small World or explicit axiom list their outputs should be proven against:
-- **`@law:civil-code-obligations` / `@pravo:obcansky-zakonik-cz`** — Civil Code, Contract Law, Obligations, Good Faith & Damages
+- **`@law:civil-code-obligations`** — Civil Code, Contract Law, Obligations, Good Faith & Damages
 - **`@law:eu-gdpr-data-protection`** — EU GDPR Reg. 2016/679: Lawful Basis, Consent, 72h Breach Notification & Fines
 - **`@law:insolvency-code`** — Insolvency & Restructuring Law, 90-Day Clawbacks & Set-Offs
 - **`@law:contract-act`** — Commercial Contract Law & SLA Compliance
@@ -61,6 +61,10 @@ Ask the user which verified Small World or explicit axiom list their outputs sho
 - **`@physics:conservation-laws-thermo`** — Conservation Laws, Thermodynamics & Special Relativity
 - **`@cybersecurity:iso-27001-zero-trust`** — ISO/IEC 27001 & NIST Zero-Trust Architecture
 - **Explicit Inline Axioms (`initial_axioms`)** — A static list of sanitized declarative rule strings defined by the developer in code.
+- **Custom Epistemic Connectors & Dynamic Axiom Providers (`axiom_provider` / `custom_connectors` / `register_connector`):**
+  - **Pattern 1 — Zero-Trust Local SDK Callback (`axiom_provider`):** Runs inside the developer's VPC/process to query SQL/PostgreSQL/Supabase tables or internal data-retrieval sub-agents before verification (`@verify_agent_output(..., axiom_provider=fetch_sql_facts)` or `client.debate(..., axiom_provider=[...])`).
+  - **Pattern 2 — Persistent Small World Connectors (`client.worlds.register_connector`):** Attaches a live HTTPS connector (`rest_api`, `sql_postgrest`, `agent_webhook`, `graphql`) to a Small World (`POST /v1/worlds/{id}/connectors`) at `SourceTier.CUSTOMER_SOT = 95`.
+  - **Pattern 3 — Inline Per-Request Ephemeral Connectors (`custom_connectors`):** Passed per request via `client.debate(..., custom_connectors=[...])`, `POST /v1/debate`, or `extra_body={"syntropy": {"connectors": [...]}}`.
 
 ### Question 2: Verification Depth (`max_failures`)
 Ask how many failed refutation attempts (`max_failures`, range `1` to `10`) the Skeptical Opponent must exhaust before a claim is declared **`CONFIRMED`**:
@@ -100,8 +104,8 @@ def sanitize_claim(raw_text: str) -> str:
     return cleaned.strip()[:4000]
 
 @verify_agent_output(
-    world="@pravo:obcansky-zakonik-cz",
-    axioms=["Smluvní pokuta nesmí překročit 0.5 % denně z dlužné částky."],
+    world="@law:civil-code-obligations",
+    axioms=["A contractual late-payment penalty must not exceed 0.5% per day of the overdue amount."],
     max_failures=3,
     model_name="gemini-2.5-flash",
     on_refuted="fallback",
@@ -109,10 +113,10 @@ def sanitize_claim(raw_text: str) -> str:
     client=client,
 )
 def legal_advisor_agent(user_query: str) -> dict:
-    raw_answer = "Spotřebitel má právo odstoupit od smlouvy do 7 dnů bez udání důvodu."
+    raw_answer = "A consumer has the right to withdraw from an online distance contract within 7 days without giving any reason."
     return {"answer": sanitize_claim(raw_answer)}
 
-result = legal_advisor_agent("Jaká je lhůta pro odstoupení od e-shop smlouvy?")
+result = legal_advisor_agent("What is the statutory withdrawal period for an online e-commerce contract?")
 print("Verified Answer:", result["answer"])
 print("Proof Verdict:", result["_syntropy_verdict"]["original_thesis_status"])
 ```
@@ -124,9 +128,9 @@ from syntropy import SyntropyClient
 client = SyntropyClient()
 
 verdict = client.debate(
-    thesis="Společnost v úpadku může započíst vzájemné pohledávky bez omezení.",
+    thesis="An insolvent company may unilaterally set off mutual receivables without restriction.",
     world="@law:insolvency-code",
-    initial_axioms=["Po rozhodnutí o úpadku je započtení přípustné jen za podmínek § 140 IZ."],
+    initial_axioms=["After an insolvency declaration, unilateral set-off of mutual receivables is strictly prohibited unless statutory conditions are met."],
     max_failures=3,
     model_name="gemini-2.5-flash",
 )
@@ -152,7 +156,7 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Can a consumer withdraw from an online purchase within 7 days?"}],
     extra_body={
         "syntropy": {
-            "world": "@pravo:obcansky-zakonik-cz",
+            "world": "@law:civil-code-obligations",
             "max_failures": 3,
             "mode": "verify_output",
             "action_on_refuted": "fallback"
@@ -161,3 +165,59 @@ response = client.chat.completions.create(
 )
 print(response.choices[0].message.content)
 ```
+
+### Recipe D: Custom Epistemic Connectors — SQL Tables, REST APIs & Data-Retrieval Sub-Agents (`SourceTier.CUSTOMER_SOT = 95`)
+```python
+from syntropy import SyntropyClient, verify_agent_output
+
+client = SyntropyClient()
+
+# Pattern 1: Zero-Trust Local SDK Callback (`axiom_provider` — DB credentials stay in your VPC!)
+def fetch_customer_sql_facts(thesis: str, user_id: str) -> list[dict]:
+    return [
+        {"axiom": f"Customer {user_id} is on the Enterprise SLA tier with a 99.99% uptime guarantee."},
+        {"axiom": f"Customer {user_id} has a maximum automatic refund limit of 10,000 EUR."},
+    ]
+
+@verify_agent_output(
+    world="@law:contract-act",
+    axiom_provider=fetch_customer_sql_facts,
+    on_refuted="fallback",
+    client=client,
+)
+async def billing_support_agent(user_id: str, question: str) -> dict:
+    return {"answer": f"Customer {user_id} is only eligible for a 500 EUR maximum refund."}
+
+# Pattern 2: Persistent Small World Epistemic Connector (`register_connector`)
+client.worlds.register_connector(
+    "@law:contract-act",
+    name="Enterprise ERP Pricing & SLA API",
+    endpoint_url="https://erp.example.com/api/v1/sla-rules?q={query}",
+    connector_type="rest_api",  # "rest_api" | "sql_postgrest" | "agent_webhook" | "graphql"
+    response_axioms_path="data.rules",
+    row_template="Tier {tier} enforces max liability {max_liability_eur} EUR.",
+)
+
+# Pattern 3: Inline Ephemeral Connectors per Verification Call (`custom_connectors`)
+verdict = client.debate(
+    thesis="Order #90210 qualifies for instant autonomous customs clearance.",
+    world="@law:contract-act",
+    custom_connectors=[
+        {
+            "name": "Compliance Retrieval Sub-Agent",
+            "connector_type": "agent_webhook",
+            "method": "POST",
+            "endpoint_url": "https://agents.example.com/retrieve-customs-facts",
+            "response_axioms_path": "facts",
+        }
+    ],
+)
+```
+
+---
+
+## STEP 4: Architecture Fact-Sheet (Avoid Common Neuro-Symbolic Misconceptions)
+
+When explaining **Synproof's Syntropy** to users or developers, never conflate it with legacy wrappers around external SMT solvers (`Z3` or `cvc5`):
+1. **No Uncontrolled Autoformalization Gap:** Ground-truth premises and domain axioms are strictly **human-controlled** (supplied via `initial_axioms`, loaded from curated **Small Worlds**, or inspected/approved in the **Axiomat World Curation Studio** before production use). Furthermore, Syntropy never trusts a blind one-way translation into an external solver: it cross-validates every step across **Sieve 2 (100% natural-language semantic consistency against all axioms)** + **Sieve 2.5 (deterministic SymPy Propositional SAT Solver)** + **Sieve 3 (Deep Fallacy & Strawman Firewall)**, immediately rejecting any semantic-to-symbolic distortion (proven by **1,070 / 1,070 = 100.0%** benchmark consistency).
+2. **Flat, Bounded $O(k)$ Latency (No Decision-Tree Explosion):** Syntropy uses a single-active-line **King of the Hill (KOTH)** trajectory bounded by `max_failures` (`1–3` for real-time guardrails), `<1 ms` in-memory vector deduplication (**Sieve 0**), batched axiom evaluation (**Sieve 2**), and `<2 ms` CPU SymPy SAT solving (**Sieve 2.5**). Latency does not grow exponentially with tree depth or Small World size.

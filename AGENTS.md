@@ -52,7 +52,7 @@ When a developer asks to **implement, connect, or use Syntropy in their project*
 
 ### Question 1: Ground-Truth Small World (`world` / `initial_axioms`)
 Ask the user which verified Small World or explicit axiom list their outputs should be proven against:
-- **`@law:civil-code-obligations` / `@pravo:obcansky-zakonik-cz`** — Civil Code, Contract Law, Obligations, Good Faith & Damages
+- **`@law:civil-code-obligations`** — Civil Code, Contract Law, Obligations, Good Faith & Damages
 - **`@law:eu-gdpr-data-protection`** — EU GDPR Reg. 2016/679: Lawful Basis, Consent, 72h Breach Notification & Fines
 - **`@law:insolvency-code`** — Insolvency & Restructuring Law, 90-Day Clawbacks & Set-Offs
 - **`@law:contract-act`** — Commercial Contract Law & SLA Compliance
@@ -104,8 +104,8 @@ def sanitize_claim(raw_text: str) -> str:
     return cleaned.strip()[:4000]
 
 @verify_agent_output(
-    world="@pravo:obcansky-zakonik-cz",
-    axioms=["Smluvní pokuta nesmí překročit 0.5 % denně z dlužné částky."],
+    world="@law:civil-code-obligations",
+    axioms=["A contractual late-payment penalty must not exceed 0.5% per day of the overdue amount."],
     max_failures=3,
     model_name="gemini-2.5-flash",
     on_refuted="fallback",
@@ -113,10 +113,10 @@ def sanitize_claim(raw_text: str) -> str:
     client=client,
 )
 def legal_advisor_agent(user_query: str) -> dict:
-    raw_answer = "Spotřebitel má právo odstoupit od smlouvy do 7 dnů bez udání důvodu."
+    raw_answer = "A consumer has the right to withdraw from an online distance contract within 7 days without giving any reason."
     return {"answer": sanitize_claim(raw_answer)}
 
-result = legal_advisor_agent("Jaká je lhůta pro odstoupení od e-shop smlouvy?")
+result = legal_advisor_agent("What is the statutory withdrawal period for an online e-commerce contract?")
 print("Verified Answer:", result["answer"])
 print("Proof Verdict:", result["_syntropy_verdict"]["original_thesis_status"])
 ```
@@ -128,9 +128,9 @@ from syntropy import SyntropyClient
 client = SyntropyClient()
 
 verdict = client.debate(
-    thesis="Společnost v úpadku může započíst vzájemné pohledávky bez omezení.",
+    thesis="An insolvent company may unilaterally set off mutual receivables without restriction.",
     world="@law:insolvency-code",
-    initial_axioms=["Po rozhodnutí o úpadku je započtení přípustné jen za podmínek § 140 IZ."],
+    initial_axioms=["After an insolvency declaration, unilateral set-off of mutual receivables is strictly prohibited unless statutory conditions are met."],
     max_failures=3,
     model_name="gemini-2.5-flash",
 )
@@ -156,7 +156,7 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Can a consumer withdraw from an online purchase within 7 days?"}],
     extra_body={
         "syntropy": {
-            "world": "@pravo:obcansky-zakonik-cz",
+            "world": "@law:civil-code-obligations",
             "max_failures": 3,
             "mode": "verify_output",
             "action_on_refuted": "fallback"

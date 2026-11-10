@@ -168,7 +168,7 @@ When a thesis $T$ and a set of ground-truth axioms $\{A_1, \dots, A_n\}$ (or a S
 ## 3. Small Worlds Catalog, Axiomat Compiler & Verified Benchmarks
 
 - **Official Verified Small Worlds (`GET https://api.synproof.ai/v1/worlds`):**
-  - `@law:civil-code-obligations` (`@pravo:obcansky-zakonik-cz`) — Civil Code: Contract Law, Obligations, Good Faith, Usury & Damages
+  - `@law:civil-code-obligations` — Civil Code: Contract Law, Obligations, Good Faith, Usury & Damages
   - `@law:eu-gdpr-data-protection` — EU GDPR (Reg. 2016/679): Lawful Basis, Consent, 72h Breach Notification & Fines
   - `@medicine:clinical-pharmacology-interactions` — Clinical Pharmacology: Contraindications, Renal Dosing, CYP3A4 & DOACs
   - `@physics:conservation-laws-thermo` — Conservation Laws, Thermodynamics & Special Relativity
