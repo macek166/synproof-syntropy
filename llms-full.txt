@@ -9,14 +9,10 @@
 
 When a user asks an AI agent to **"use Synproof's Syntropy"**:
 
-### 0.1. Install Python SDK, CLI & MCP Server (`syntropy-client` v2.5.0)
+### 0.1. Install Official Open-Source Python SDK, CLI & MCP Server (`syntropy-client` v2.6.0, MIT License)
 ```bash
-# Primary installation from official PyPI.org:
+# Install from official PyPI.org (public source repository: https://github.com/macek166/synproof-syntropy):
 pip install --upgrade syntropy-client
-
-# Fallback PEP 503 index or direct wheel URL from synproof.ai:
-pip install syntropy-client --extra-index-url https://synproof.ai/simple
-pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
 ```
 
 ### 0.2. Authentication (Managed Key or Zero-Friction BYOK)

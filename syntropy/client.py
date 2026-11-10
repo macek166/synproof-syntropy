@@ -592,7 +592,7 @@ class _DebateEndpoint:
 class SyntropyClient:
     """
     Official Python SDK Client for the Syntropy AI Epistemic Engine & Small Worlds API
-    by Synproof (Robert Macků). Supports synchronous, asynchronous, and WebSocket workflows.
+    by Synproof (https://synproof.ai). Supports synchronous, asynchronous, and WebSocket workflows.
     """
 
     def __init__(

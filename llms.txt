@@ -23,14 +23,10 @@ Every claim is attacked and defended in a **King of the Hill** dialectical tree 
 
 If a user asked you to **"use Synproof's Syntropy"**, read https://synproof.ai/SKILL.md or follow these 3 steps:
 
-### Step 1 — Install Official Python SDK, CLI & MCP Server (`syntropy-client`)
+### Step 1 — Install Official Open-Source Python SDK, CLI & MCP Server (`syntropy-client` v2.6.0, MIT License)
 ```bash
-# Primary install from official PyPI.org:
+# Install from official PyPI.org (source + wheel audited at https://github.com/macek166/synproof-syntropy):
 pip install --upgrade syntropy-client
-
-# Fallback PEP 503 index or direct wheel from synproof.ai:
-pip install syntropy-client --extra-index-url https://synproof.ai/simple
-pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
 ```
 
 ### Step 2 — Authentication (Managed Key or Zero-Friction BYOK)

@@ -10,6 +10,12 @@
 > **Language models guess. Syntropy proves.**  
 > The formal verification engine for AI outputs, contracts, scientific hypotheses, and critical decisions. Mapping natural-language semantics directly onto propositional logic, **Synproof's Syntropy** ([https://synproof.ai](https://synproof.ai)) tests any claim against your ground-truth **Small Worlds** — eliminating hallucinations and returning a binary verdict (`CONFIRMED` or `REFUTED`) with a clear, defensible argument or counter-argument.
 
+### Package Scope & Architecture (Open-Source MIT SDK + Cloud Verification Engine)
+
+Following the standard architecture of official cloud AI SDKs (`openai`, `anthropic`, `pinecone`):
+- **Open-Source Client SDK, CLI & MCP Server (`syntropy-client` on PyPI / `syntropy-mcp` on npm — MIT License):** 100% of the Python and TypeScript client libraries, `@verify_agent_output` guardrail decorators, local Zero-Trust `axiom_provider` callbacks, CLI, and stdio MCP servers in this repository are open-source under the MIT License and distributed with full source (`sdist` + wheel) on PyPI.
+- **Syntropy Cloud Verification Engine (`https://api.synproof.ai`):** The 5-sieve dialectical verification tribunal, SymPy Propositional SAT Solver, Axiomat compiler, and curated Small Worlds axiom registry run as a managed cloud platform operated by **Synproof** ([https://synproof.ai](https://synproof.ai)).
+
 ---
 
 ## Canonical Links & Documentation
@@ -18,6 +24,8 @@
 | :--- | :--- |
 | **Web Platform & Interactive Studio** | [https://synproof.ai](https://synproof.ai) |
 | **Developer Documentation (20 Chapters)** | [https://synproof.ai/docs](https://synproof.ai/docs) |
+| **Official PyPI Package (`syntropy-client`)** | [https://pypi.org/project/syntropy-client/](https://pypi.org/project/syntropy-client/) |
+| **Public SDK & MCP GitHub Repository** | [https://github.com/macek166/synproof-syntropy](https://github.com/macek166/synproof-syntropy) |
 | **OpenRouter Integration Guide** | [https://synproof.ai/docs/openrouter](https://synproof.ai/docs/openrouter) |
 | **How the 5-Sieve Architecture Works** | [https://synproof.ai/how-it-works](https://synproof.ai/how-it-works) |
 | **AI Coding Agent Skill (`SKILL.md`)** | [https://synproof.ai/SKILL.md](https://synproof.ai/SKILL.md) |

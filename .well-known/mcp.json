@@ -2,10 +2,11 @@
   "$schema": "https://modelcontextprotocol.io/schemas/mcp-server-manifest.json",
   "name": "synproof-syntropy",
   "title": "Synproof's Syntropy — Deterministic 5-Sieve Verification & Small Worlds MCP Server",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Official Model Context Protocol (MCP) server for Synproof's Syntropy ('Language models guess. Syntropy proves.'). Puts any claim, contract clause, scientific hypothesis, or AI agent output on formal adversarial trial against explicit ground-truth axioms (Small Worlds) using a 5-sieve dialectical tribunal, SymPy Propositional SAT Solver, and Dung's Grounded Extension semantics.",
   "homepage": "https://synproof.ai",
   "documentation": "https://synproof.ai/docs",
+  "repository": "https://github.com/macek166/synproof-syntropy",
   "skillUrl": "https://synproof.ai/SKILL.md",
   "llmsTxt": "https://synproof.ai/llms.txt",
   "llmsFullTxt": "https://synproof.ai/llms-full.txt",
@@ -13,10 +14,11 @@
   "package": {
     "registry": "pypi",
     "name": "syntropy-client",
-    "version": "2.5.0",
+    "version": "2.6.0",
+    "license": "MIT",
     "url": "https://pypi.org/project/syntropy-client/",
-    "installCommand": "pip install syntropy-client",
-    "fallbackWheelUrl": "https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl"
+    "repositoryUrl": "https://github.com/macek166/synproof-syntropy",
+    "installCommand": "pip install --upgrade syntropy-client"
   },
   "runtime": {
     "transport": "stdio",

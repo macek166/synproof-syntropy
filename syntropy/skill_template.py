@@ -34,11 +34,8 @@ You are equipped with the official **Synproof's Syntropy** skill. Your mission i
 Before anything else, ensure `syntropy-client` is installed in the active Python environment:
 
 ```bash
-# 1. Official PyPI installation (Primary)
+# Official PyPI installation
 pip install --upgrade syntropy-client
-
-# 2. Fallback direct installation from Synproof CDN (if PyPI is blocked/cached)
-pip install https://synproof.ai/sdk/syntropy_client-2.5.0-py3-none-any.whl
 ```
 
 Verify the CLI and inspect live Small Worlds in the library:
